@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qamoosi/main.dart';
+import 'package:qamoosi/core/quiz_stats.dart';
 import 'package:qamoosi/features/achievements/achievements_panel.dart';
 
 void main() {
@@ -23,6 +24,9 @@ void main() {
   testWidgets('achievements display saved learning progress', (tester) async {
     SharedPreferences.setMockInitialValues({
       'known_cards': ['variable'],
+      'quiz_attempts': 2,
+      'quiz_last_score': 3,
+      'quiz_best_score': 5,
     });
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
@@ -32,6 +36,37 @@ void main() {
     expect(find.text('تفاصيل الدروس'), findsOneWidget);
     expect(find.text('دروس مكتملة'), findsOneWidget);
     expect(find.text('مستحقة للمراجعة'), findsOneWidget);
+    expect(find.textContaining('آخر نتيجة: 3 من 6'), findsOneWidget);
+    expect(find.text('الاختبارات المكتملة: 2'), findsOneWidget);
+  });
+
+  test('quiz covers all six lessons and rotates after each attempt', () {
+    final firstAttempt = buildQuizCards(0);
+    final secondAttempt = buildQuizCards(1);
+    expect(firstAttempt.length, lessons.length);
+    expect(firstAttempt.map((card) => card.id).toSet().length, lessons.length);
+    for (var i = 0; i < lessons.length; i++) {
+      expect(lessons[i].cards.contains(firstAttempt[i]), isTrue);
+      expect(lessons[i].cards.contains(secondAttempt[i]), isTrue);
+      expect(firstAttempt[i].id, isNot(secondAttempt[i].id));
+    }
+    expect(firstAttempt.first.word, 'Variable');
+    expect(secondAttempt.first.word, 'Constant');
+  });
+
+  test('completed quiz history keeps best result and counts attempts', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    expect(QuizStats.fromPreferences(prefs).attempts, 0);
+    final first = await QuizStats.record(prefs, 4);
+    expect(first.attempts, 1);
+    expect(first.lastScore, 4);
+    expect(first.bestScore, 4);
+    final second = await QuizStats.record(prefs, 2);
+    expect(second.attempts, 2);
+    expect(second.lastScore, 2);
+    expect(second.bestScore, 4);
+    expect(QuizStats.fromPreferences(prefs).bestScore, 4);
   });
 
   test('lesson progress counts only known cards in that lesson', () {
@@ -56,9 +91,9 @@ void main() {
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
     expect(find.text('الإنجليزية التقنية'), findsOneWidget);
-    await tester.ensureVisible(find.text('أساسيات البرمجة'));
+    await tester.ensureVisible(find.byKey(const Key('lesson_0')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('أساسيات البرمجة'));
+    await tester.tap(find.byKey(const Key('lesson_0')));
     await tester.pumpAndSettle();
     expect(find.text('Variable'), findsOneWidget);
     await tester.tap(find.byKey(const Key('flip_card')));
@@ -103,14 +138,37 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('اختبر معلوماتك'));
+    await tester.ensureVisible(find.byKey(const Key('open_quiz')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('اختبر معلوماتك'), warnIfMissed: false);
+    await tester.tap(find.byKey(const Key('open_quiz')));
     await tester.pumpAndSettle();
     expect(find.text('اختبار الكلمات'), findsOneWidget);
-    expect(find.text('السؤال 1 من 5'), findsOneWidget);
+    expect(find.text('السؤال 1 من 6'), findsOneWidget);
     expect(find.text('Variable'), findsOneWidget);
   });
+  testWidgets('six-question quiz saves score and advances to new words', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MaterialApp(home: QuizPage()));
+    await tester.pumpAndSettle();
+    expect(find.text('Variable'), findsOneWidget);
+    for (var i = 0; i < 6; i++) {
+      expect(find.text('السؤال ${i + 1} من 6'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('quiz_choice_0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('quiz_next')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.textContaining('نتيجتك:'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('quiz_attempts'), 1);
+    expect(prefs.getInt('quiz_last_score'), isNotNull);
+    await tester.tap(find.text('اختبار جديد'));
+    await tester.pumpAndSettle();
+    expect(find.text('Constant'), findsOneWidget);
+  });
+
   testWidgets('search finds English and Arabic vocabulary', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
