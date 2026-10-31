@@ -869,7 +869,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
                       itemCount: results.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      separatorBuilder: (context, index) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final card = results[index];
                         return Material(
