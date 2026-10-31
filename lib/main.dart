@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:ui';
 import 'core/review_scheduler.dart';
+import 'features/achievements/achievements_panel.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -422,7 +423,22 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 )
-              : ListView(
+              : selectedTab == 2
+                  ? AchievementsPanel(
+                      lessons: [
+                        for (final lesson in lessons)
+                          LessonAchievement(
+                            title: lesson.title,
+                            completed: lesson.cards.where((card) => known.contains(card.id)).length,
+                            total: lesson.cards.length,
+                          ),
+                      ],
+                      dueCards: due,
+                      scheduledCards: reviews.entries.where((entry) =>
+                        allIds.contains(entry.key) && !entry.value.isDue(DateTime.now())).length,
+                      onExplore: () => setState(() => selectedTab = 0),
+                    )
+                  : ListView(
                   padding: const EdgeInsets.fromLTRB(22, 32, 22, 120),
                   children: [
                     Text(selectedTab == 1 ? 'المراجعة' : 'إنجازاتي',
