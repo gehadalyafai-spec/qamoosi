@@ -140,5 +140,17 @@ void main() {
     expect(find.text('مراجعة أخطائي'), findsOneWidget);
     expect(find.text('الموقف 1 من 1'), findsOneWidget);
     expect(find.text(practiceQuestions[1].prompt), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('practice_choice_2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('practice_next')));
+    await tester.pumpAndSettle();
+    expect(find.text('مواقف تحتاج مراجعة: 0'), findsOneWidget);
+
+    await tester.tap(find.text('العودة للرئيسية'));
+    await tester.pumpAndSettle();
+    expect(find.text('لا توجد أخطاء معلّقة حاليًا'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(PracticeMistakes.fromPreferences(prefs).pendingCount, 0);
   });
 }
