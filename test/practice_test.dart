@@ -121,6 +121,27 @@ void main() {
     expect(find.text('الموقف 2 من 6'), findsOneWidget);
   });
 
+  testWidgets('right practice answer advances without manual next',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MaterialApp(home: PracticePage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('practice_choice_1')));
+    await tester.pump();
+    expect(find.text('الموقف 1 من 6'), findsOneWidget);
+    expect(find.byKey(const Key('practice_next')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pumpAndSettle();
+
+    expect(find.text('الموقف 2 من 6'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(PracticeStats.fromPreferences(prefs).attempts, 0);
+    expect(prefs.getStringList('known_cards'), isNull);
+  });
+
   testWidgets('all six answers save one attempt and retry changes questions',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(900, 1200));
@@ -136,9 +157,11 @@ void main() {
       await tester.tap(
         find.byKey(Key('practice_choice_${first[i].correctIndex}')),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(find.text('إجابة صحيحة!'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('practice_next')));
+      expect(find.text('إجابة صحيحة! الانتقال تلقائيًا...'), findsOneWidget);
+      expect(find.byKey(const Key('practice_next')), findsNothing);
+      await tester.pump(const Duration(milliseconds: 750));
       await tester.pumpAndSettle();
     }
     expect(find.byKey(const Key('practice_result')), findsOneWidget);
