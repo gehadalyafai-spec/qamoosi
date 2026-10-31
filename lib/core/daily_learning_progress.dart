@@ -30,7 +30,7 @@ class DailyLearningProgress {
   }
 
   double fractionOn(DateTime date) =>
-      (countOn(date) / dailyGoal).clamp(0.0, 1.0);
+      (countOn(date) / dailyGoal).clamp(0.0, 1.0).toDouble();
 
   int get activeDays =>
       activity.values.where((cards) => cards.isNotEmpty).length;
