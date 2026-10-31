@@ -12,9 +12,11 @@ import 'features/learning/word_insight_details.dart';
 import 'features/quiz/quiz_mistakes_review.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
+import 'features/achievements/learning_overview.dart';
 import 'features/path/learning_path_card.dart';
 import 'features/practice/practice_page.dart';
 import 'features/practice/practice_mistakes.dart';
+import 'features/practice/practice_stats.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -221,6 +223,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Set<String> known = {};
   Map<String, ReviewState> reviews = {};
   QuizStats quizStats = const QuizStats();
+  PracticeStats practiceStats = const PracticeStats();
   DailyLearningProgress dailyProgress = DailyLearningProgress();
   int pendingPracticeMistakes = 0;
   LearningLevel? selectedLevel;
@@ -267,6 +270,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       known = prefs.getStringList('known_cards')?.toSet() ?? {};
       reviews = restored;
       quizStats = QuizStats.fromPreferences(prefs);
+      practiceStats = PracticeStats.fromPreferences(prefs);
       pendingPracticeMistakes =
           PracticeMistakes.fromPreferences(prefs).pendingCount;
       final dailyJson = prefs.getString(DailyLearningProgress.storageKey);
@@ -775,6 +779,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       dueCards: due,
                       quizStats: quizStats,
                       dailyProgress: dailyProgress,
+                      levelProgress: [
+                        for (final level in LearningLevel.values)
+                          LearningLevelProgress.fromCardIds(
+                            label: level.label,
+                            lessonCardIds: [
+                              for (final lesson in lessons)
+                                if (lesson.level == level)
+                                  lesson.cards.map((card) => card.id),
+                            ],
+                            knownIds: known,
+                          ),
+                      ],
+                      practiceStats: practiceStats,
+                      pendingMistakes: pendingPracticeMistakes,
+                      nextLessonTitle: recommendedLesson?.title,
+                      onContinueLesson: recommendedLesson == null
+                          ? null
+                          : () => _openLesson(
+                              lessonRemainingToLearn(recommendedLesson, known),
+                            ),
+                      onPractice: _openPractice,
+                      onReviewMistakes: pendingPracticeMistakes > 0
+                          ? _openMistakeReview
+                          : null,
                       scheduledCards: reviews.entries.where((entry) =>
                         allIds.contains(entry.key) && !entry.value.isDue(DateTime.now())).length,
                       onExplore: () => setState(() => selectedTab = 0),
