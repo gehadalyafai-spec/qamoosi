@@ -61,7 +61,8 @@ void main() {
     expect(merged, contains('android.intent.action.PROCESS_TEXT'));
     expect(merged, contains('android.intent.action.TTS_SERVICE'));
     expect(merged.split('<queries>').length, 2);
-    expect(ensureAndroidTtsVisibility('not a manifest'), throwsFormatException);
+    expect(() => ensureAndroidTtsVisibility('not a manifest'),
+      throwsFormatException);
   });
 
   testWidgets('button speaks normal and slow English without real audio',
@@ -188,7 +189,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(fake.words, ['Webhook']);
 
-    await tester.tap(find.text('Webhook'));
+    await tester.tap(find.widgetWithText(ExpansionTile, 'Webhook'));
     await tester.pumpAndSettle();
     final slow = find.byKey(const Key('search_speak_slow_extra_webhook'));
     await tester.ensureVisible(slow);
