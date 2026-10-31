@@ -128,6 +128,13 @@ class _HomePageState extends State<HomePage> {
     ));
   }
 
+  Future<void> _openSearch() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const WordSearchPage()),
+    );
+  }
+
   Future<void> _openQuiz() async {
     await Navigator.push<void>(
       context,
@@ -268,6 +275,27 @@ class _HomePageState extends State<HomePage> {
                           const Text('اختر درسًا وابدأ رحلة التعلم',
                             style: TextStyle(color: Color(0xFF667085))),
                           const SizedBox(height: 18),
+                          Material(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            child: InkWell(
+                              key: const Key('open_word_search'),
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: _openSearch,
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                                child: Row(children: [
+                                  Icon(Icons.search_rounded, color: Color(0xFF6554C0), size: 27),
+                                  SizedBox(width: 12),
+                                  Expanded(child: Text('ابحث عن كلمة أو معناها',
+                                    style: TextStyle(color: Color(0xFF667085), fontSize: 16))),
+                                  Icon(Icons.arrow_back_ios_new_rounded,
+                                    color: Color(0xFF667085), size: 16),
+                                ]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
                           Material(
                             color: const Color(0xFF101D32),
                             borderRadius: BorderRadius.circular(22),
@@ -722,5 +750,133 @@ extension _SeededShuffle<T> on List<T> {
       this[j] = item;
       seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
     }
+  }
+}
+
+
+class WordSearchPage extends StatefulWidget {
+  const WordSearchPage({super.key});
+
+  @override
+  State<WordSearchPage> createState() => _WordSearchPageState();
+}
+
+class _WordSearchPageState extends State<WordSearchPage> {
+  final TextEditingController controller = TextEditingController();
+  static final List<CardEntry> allCards = [
+    for (final lesson in lessons) ...lesson.cards,
+  ];
+  String query = '';
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final term = query.trim().toLowerCase();
+    final results = term.isEmpty
+        ? allCards
+        : allCards.where((card) =>
+            card.word.toLowerCase().contains(term) ||
+            card.translation.toLowerCase().contains(term) ||
+            card.pronunciation.toLowerCase().contains(term) ||
+            card.example.toLowerCase().contains(term)).toList();
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('البحث في قاموسي')),
+        body: SafeArea(
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+              child: TextField(
+                key: const Key('word_search_field'),
+                controller: controller,
+                autofocus: false,
+                onChanged: (value) => setState(() => query = value),
+                decoration: InputDecoration(
+                  hintText: 'اكتب كلمة إنجليزية أو معناها بالعربية',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: query.isEmpty ? null : IconButton(
+                    tooltip: 'مسح البحث',
+                    onPressed: () {
+                      controller.clear();
+                      setState(() => query = '');
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text('${results.length} كلمة',
+                  style: const TextStyle(color: Color(0xFF667085))),
+              ),
+            ),
+            Expanded(
+              child: results.isEmpty
+                  ? const Center(child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: 56, color: Color(0xFF98A2B3)),
+                        SizedBox(height: 14),
+                        Text('لم نعثر على كلمات مطابقة'),
+                        SizedBox(height: 6),
+                        Text('جرّب كلمة أخرى أو جزءًا منها',
+                          style: TextStyle(color: Color(0xFF667085))),
+                      ],
+                    ))
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+                      itemCount: results.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final card = results[index];
+                        return Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          child: ExpansionTile(
+                            shape: const Border(),
+                            collapsedShape: const Border(),
+                            title: Text(card.word,
+                              textDirection: TextDirection.ltr,
+                              style: const TextStyle(fontSize: 19,
+                                fontWeight: FontWeight.w800)),
+                            subtitle: Text(card.translation),
+                            childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                            children: [
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text('النطق: ${card.pronunciation}',
+                                  style: const TextStyle(color: Color(0xFF6554C0))),
+                              ),
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: SelectableText(card.example,
+                                  textDirection: TextDirection.ltr),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
