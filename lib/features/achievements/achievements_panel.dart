@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/quiz_stats.dart';
+import '../practice/practice_stats.dart';
+import 'learning_overview.dart';
 import '../../core/daily_learning_progress.dart';
 import '../daily/daily_learning_widgets.dart';
 
@@ -28,6 +30,13 @@ class AchievementsPanel extends StatelessWidget {
     required this.scheduledCards,
     required this.quizStats,
     required this.dailyProgress,
+    required this.levelProgress,
+    required this.practiceStats,
+    required this.pendingMistakes,
+    required this.nextLessonTitle,
+    required this.onContinueLesson,
+    required this.onPractice,
+    required this.onReviewMistakes,
     required this.onExplore,
   });
 
@@ -36,6 +45,13 @@ class AchievementsPanel extends StatelessWidget {
   final int scheduledCards;
   final QuizStats quizStats;
   final DailyLearningProgress dailyProgress;
+  final List<LearningLevelProgress> levelProgress;
+  final PracticeStats practiceStats;
+  final int pendingMistakes;
+  final String? nextLessonTitle;
+  final VoidCallback? onContinueLesson;
+  final VoidCallback onPractice;
+  final VoidCallback? onReviewMistakes;
   final VoidCallback onExplore;
 
   @override
@@ -165,7 +181,17 @@ class AchievementsPanel extends StatelessWidget {
             )),
           ]),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 23),
+        LearningOverviewPanel(
+          levels: levelProgress,
+          practiceStats: practiceStats,
+          pendingMistakes: pendingMistakes,
+          nextLessonTitle: nextLessonTitle,
+          onContinueLesson: onContinueLesson,
+          onPractice: onPractice,
+          onReviewMistakes: onReviewMistakes,
+        ),
+        const SizedBox(height: 23),
         WeeklyLearningPanel(
           progress: dailyProgress,
           now: DateTime.now(),
@@ -196,7 +222,7 @@ class AchievementsPanel extends StatelessWidget {
                     style: const TextStyle(color: muted, fontWeight: FontWeight.w700)),
               ]),
               const SizedBox(height: 9),
-              Text('${lesson.completed} من ${lesson.total} كلمات',
+              Text('${lesson.completed} من ${lesson.total} كلمات  •  المتبقي: ${(lesson.total - lesson.completed).clamp(0, lesson.total)}',
                 style: const TextStyle(color: muted, fontSize: 13)),
               const SizedBox(height: 12),
               ClipRRect(
