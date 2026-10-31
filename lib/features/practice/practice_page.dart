@@ -201,7 +201,9 @@ class _PracticePageState extends State<PracticePage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('تدريب فهم المصطلحات'),
+          title: Text(widget.reviewMistakes
+              ? 'مراجعة أخطائي'
+              : 'تدريب فهم المصطلحات'),
         ),
         body: SafeArea(
           child: _loading
@@ -211,15 +213,33 @@ class _PracticePageState extends State<PracticePage> {
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Column(
+                          key: const Key('practice_empty_state'),
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.error_outline_rounded, size: 48),
+                            Icon(
+                              _loadError == null && widget.reviewMistakes
+                                  ? Icons.verified_rounded
+                                  : Icons.error_outline_rounded,
+                              size: 52,
+                              color: _loadError == null && widget.reviewMistakes
+                                  ? const Color(0xFF21865B)
+                                  : const Color(0xFF667085),
+                            ),
                             const SizedBox(height: 12),
-                            Text(_loadError ?? 'لا تتوفر أسئلة حاليًا'),
+                            Text(_loadError ??
+                                (widget.reviewMistakes
+                                    ? 'لا توجد أخطاء معلّقة للمراجعة'
+                                    : 'لا تتوفر أسئلة حاليًا')),
                             const SizedBox(height: 12),
                             FilledButton(
-                              onPressed: _prepare,
-                              child: const Text('إعادة المحاولة'),
+                              onPressed: _loadError != null
+                                  ? _prepare
+                                  : () => Navigator.pop(context),
+                              child: Text(
+                                _loadError != null
+                                    ? 'إعادة المحاولة'
+                                    : 'العودة للرئيسية',
+                              ),
                             ),
                           ],
                         ),
@@ -258,7 +278,7 @@ class _PracticePageState extends State<PracticePage> {
             color: orange,
             backgroundColor: const Color(0xFFEAE8EF),
           ),
-          if (_stats.attempts > 0) ...[
+          if (!widget.reviewMistakes && _stats.attempts > 0) ...[
             const SizedBox(height: 9),
             Text(
               'أفضل نتيجة سابقة: ${_stats.bestScore} من 6',
@@ -394,9 +414,9 @@ class _PracticePageState extends State<PracticePage> {
               icon: const Icon(Icons.arrow_back_rounded),
               label: Text(
                 _saving
-                    ? 'جارٍ حفظ النتيجة...'
+                    ? 'جارٍ حفظ الإجابة...'
                     : _index + 1 == _questions.length
-                        ? 'عرض نتيجة التدريب'
+                        ? 'عرض النتيجة'
                         : 'الموقف التالي',
               ),
             ),
