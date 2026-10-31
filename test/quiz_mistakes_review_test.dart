@@ -97,7 +97,7 @@ void main() {
 
     await tester.tap(find.text('اختبار جديد'));
     await tester.pumpAndSettle();
-    expect(find.text('Constant'), findsOneWidget);
+    expect(find.text('CPU'), findsOneWidget);
     expect(find.byKey(const Key('quiz_mistake_summary')), findsNothing);
   });
 
