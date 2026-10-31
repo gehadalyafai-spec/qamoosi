@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'core/review_scheduler.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +74,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Set<String> known = {};
+  Map<String, ReviewState> reviews = {};
 
   @override
   void initState() {
@@ -82,13 +85,39 @@ class _HomePageState extends State<HomePage> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => known = prefs.getStringList('known_cards')?.toSet() ?? {});
+    final raw = prefs.getString('review_states');
+    final decoded = raw == null ? null : jsonDecode(raw);
+    final restored = <String, ReviewState>{};
+    if (decoded is Map) {
+      for (final entry in decoded.entries) {
+        final state = ReviewState.fromJson(entry.value);
+        if (state != null) restored[entry.key.toString()] = state;
+      }
+    }
+    setState(() {
+      known = prefs.getStringList('known_cards')?.toSet() ?? {};
+      reviews = restored;
+    });
   }
 
-  Future<void> _recordKnown(String id) async {
+  Future<void> _recordKnown(String id, ReviewRating rating) async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => known.add(id));
+    setState(() {
+      reviews[id] = scheduleReview(
+        now: DateTime.now(),
+        rating: rating,
+        previous: reviews[id],
+      );
+      if (rating == ReviewRating.again) {
+        known.remove(id);
+      } else {
+        known.add(id);
+      }
+    });
     await prefs.setStringList('known_cards', known.toList());
+    await prefs.setString('review_states', jsonEncode(
+      reviews.map((key, value) => MapEntry(key, value.toJson())),
+    ));
   }
 
   @override
@@ -104,6 +133,7 @@ class _HomePageState extends State<HomePage> {
             const Text('الإنجليزية التقنية', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text('أتقنت ${known.length} من $total بطاقة'),
+            Text('مستحقة للمراجعة الآن: ${reviews.values.where((review) => review.isDue(DateTime.now())).length}'),
             const SizedBox(height: 24),
             for (final lesson in lessons)
               Card(
@@ -131,7 +161,7 @@ class _HomePageState extends State<HomePage> {
 
 class LessonPage extends StatefulWidget {
   final Lesson lesson;
-  final Future<void> Function(String) onKnown;
+  final Future<void> Function(String, ReviewRating) onKnown;
 
   const LessonPage({super.key, required this.lesson, required this.onKnown});
 
@@ -201,7 +231,10 @@ class _LessonPageState extends State<LessonPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: next,
+                      onPressed: () async {
+                        await widget.onKnown(card.id, ReviewRating.again);
+                        if (mounted) next();
+                      },
                       child: const Text('أحتاج مراجعة'),
                     ),
                   ),
@@ -209,7 +242,7 @@ class _LessonPageState extends State<LessonPage> {
                   Expanded(
                     child: FilledButton(
                       onPressed: () async {
-                        await widget.onKnown(card.id);
+                        await widget.onKnown(card.id, ReviewRating.good);
                         if (mounted) next();
                       },
                       child: const Text('عرفتها'),
