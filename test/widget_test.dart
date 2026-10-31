@@ -33,11 +33,22 @@ void main() {
     await tester.tap(find.text('إنجازاتي').last);
     await tester.pumpAndSettle();
     expect(find.text('أتقنت 1 من 30 بطاقة'), findsOneWidget);
-    expect(find.text('تفاصيل الدروس'), findsOneWidget);
     expect(find.text('دروس مكتملة'), findsOneWidget);
     expect(find.text('مستحقة للمراجعة'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('achievements_quiz_stats')),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.textContaining('آخر نتيجة: 3 من 6'), findsOneWidget);
     expect(find.text('الاختبارات المكتملة: 2'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('تفاصيل الدروس'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('تفاصيل الدروس'), findsOneWidget);
   });
 
   test('quiz covers all six lessons and rotates after each attempt', () {
