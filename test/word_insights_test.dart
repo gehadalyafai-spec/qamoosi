@@ -7,12 +7,12 @@ import 'package:qamoosi/main.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('all thirty vocabulary cards have complete, unique teaching notes', () {
+  test('all sixty vocabulary cards have complete, unique teaching notes', () {
     final cards = [
       for (final lesson in lessons) ...lesson.cards,
     ];
     final expectedIds = cards.map((card) => card.id).toSet();
-    expect(cards.length, 30);
+    expect(cards.length, 60);
     expect(wordInsights.keys.toSet(), expectedIds);
     for (final card in cards) {
       final insight = wordInsightFor(card.id);
@@ -22,6 +22,20 @@ void main() {
       expect(insight.practiceQuestion.trim().length, greaterThan(10));
     }
     expect(wordInsightFor('not-a-real-card'), isNull);
+  });
+
+  test('new terms have explanations and remain locally searchable', () {
+    final string = lessons.first.cards.firstWhere((card) => card.id == 'string');
+    final json = [
+      for (final lesson in lessons)
+        for (final card in lesson.cards)
+          if (card.id == 'json') card,
+    ].single;
+    expect(matchesVocabularyQuery(string, 'سلسلة نصية'), isTrue);
+    expect(matchesVocabularyQuery(string, 'اسم الدرس'), isTrue);
+    expect(matchesVocabularyQuery(json, 'صيغة نصية منظمة'), isTrue);
+    expect(wordInsightFor('git')!.practiceQuestion, isNotEmpty);
+    expect(wordInsightFor('process')!.projectUse, isNotEmpty);
   });
 
   test('offline search also indexes explanation and project-use text', () {
