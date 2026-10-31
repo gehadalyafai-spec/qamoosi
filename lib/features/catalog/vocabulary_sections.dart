@@ -114,30 +114,28 @@ List<VocabularySectionSelection> selectVocabularySections({
     for (var i = 0; i < lessonTitles.length; i++) lessonTitles[i]: i,
   };
   final search = query.trim().toLowerCase();
-  return [
-    for (final section in vocabularySections)
-      if ({
-        for (final title in section.lessonTitles)
-          if (byTitle.containsKey(title) &&
-              matchesLevel(byTitle[title]!) &&
-              (search.isEmpty ||
-                  section.title.toLowerCase().contains(search) ||
-                  section.description.toLowerCase().contains(search) ||
-                  matchesLesson(byTitle[title]!, query)))
-            byTitle[title]!,
-      }.isNotEmpty)
-        VocabularySectionSelection(
-          section: section,
-          lessonIndices: [
-            for (final title in section.lessonTitles)
-              if (byTitle.containsKey(title) &&
-                  matchesLevel(byTitle[title]!) &&
-                  (search.isEmpty ||
-                      section.title.toLowerCase().contains(search) ||
-                      section.description.toLowerCase().contains(search) ||
-                      matchesLesson(byTitle[title]!, query)))
-                byTitle[title]!,
-          ],
-        ),
-  ];
+  final results = <VocabularySectionSelection>[];
+  for (final section in vocabularySections) {
+    final matchesSectionName = search.isNotEmpty &&
+        (section.title.toLowerCase().contains(search) ||
+         section.description.toLowerCase().contains(search));
+    final indices = <int>[];
+    for (final lessonTitle in section.lessonTitles) {
+      final index = byTitle[lessonTitle];
+      if (index == null || !matchesLevel(index)) continue;
+      if (search.isNotEmpty &&
+          !matchesSectionName &&
+          !matchesLesson(index, query)) {
+        continue;
+      }
+      indices.add(index);
+    }
+    if (indices.isNotEmpty) {
+      results.add(VocabularySectionSelection(
+        section: section,
+        lessonIndices: indices,
+      ));
+    }
+  }
+  return results;
 }
