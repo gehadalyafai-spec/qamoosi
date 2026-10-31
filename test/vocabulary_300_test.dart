@@ -59,6 +59,10 @@ void main() {
     expect(matchesLessonQuery(lessons[27], 'ويب هوك'), isTrue);
     expect(matchesLessonQuery(lessons[29], 'LLM'), isTrue);
     expect(matchesVocabularyQuery(rag, 'نص خارج نطاق البطاقة'), isFalse);
+    expect(vocabularySearchPriority(webhook, 'Webhook'), 0);
+    expect(vocabularySearchPriority(checkout, 'Check'), 1);
+    expect(vocabularySearchPriority(rag, 'توليد مدعوم بالاسترجاع'), 2);
+    expect(vocabularySearchPriority(webhook, 'يرسلها نظام'), 5);
   });
 
   testWidgets('new commerce card opens learning notes and retains progress',
@@ -98,7 +102,10 @@ void main() {
       'webhook',
     );
     await tester.pumpAndSettle();
-    expect(find.text('1 كلمة'), findsOneWidget);
+    // Searching includes translations, code examples and Arabic teaching
+    // notes, so a term can have related matches as well as the exact card.
+    // The exact English card must be discoverable without requiring only one.
+    expect(find.byType(ExpansionTile), findsWidgets);
     expect(find.text('Webhook'), findsOneWidget);
     await tester.tap(find.text('Webhook'));
     await tester.pumpAndSettle();
