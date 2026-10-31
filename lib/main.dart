@@ -333,6 +333,7 @@ class _HomePageState extends State<HomePage> {
                             color: const Color(0xFF101D32),
                             borderRadius: BorderRadius.circular(22),
                             child: InkWell(
+                              key: const Key('open_quiz'),
                               borderRadius: BorderRadius.circular(22),
                               onTap: _openQuiz,
                               child: const Padding(
