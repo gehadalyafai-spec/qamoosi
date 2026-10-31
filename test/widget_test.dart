@@ -7,6 +7,14 @@ import 'package:qamoosi/main.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('lesson progress counts only known cards in that lesson', () {
+    final lesson = lessons.first;
+    expect(lessonProgress(lesson, {}), 0);
+    expect(lessonProgress(lesson, {lesson.cards.first.id}), 0.2);
+    expect(lessonProgress(lesson, {for (final card in lesson.cards) card.id}), 1);
+    expect(lessonProgress(lesson, {'unknown-card'}), 0);
+  });
+
   test('vocabulary has six lessons, thirty unique cards', () {
     expect(lessons.length, 6);
     final cards = [for (final lesson in lessons) ...lesson.cards];
