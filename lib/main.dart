@@ -426,9 +426,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 24),
+                          const Text('اختر مستواك', style: TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.w800, color: navy)),
+                          const SizedBox(height: 7),
+                          const Text('انتقل بين المستويات دون أن تفقد تقدمك المحفوظ',
+                            style: TextStyle(color: Color(0xFF667085), fontSize: 13)),
+                          const SizedBox(height: 14),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(children: [
+                              ChoiceChip(
+                                key: const Key('level_all'),
+                                label: const Text('كل الدروس'),
+                                selected: selectedLevel == null,
+                                onSelected: (_) => setState(() => selectedLevel = null),
+                              ),
+                              const SizedBox(width: 8),
+                              ChoiceChip(
+                                key: const Key('level_beginner'),
+                                label: const Text('المبتدئ'),
+                                selected: selectedLevel == LearningLevel.beginner,
+                                onSelected: (_) => setState(
+                                  () => selectedLevel = LearningLevel.beginner),
+                              ),
+                              const SizedBox(width: 8),
+                              ChoiceChip(
+                                key: const Key('level_intermediate'),
+                                label: const Text('المتوسط'),
+                                selected: selectedLevel == LearningLevel.intermediate,
+                                onSelected: (_) => setState(
+                                  () => selectedLevel = LearningLevel.intermediate),
+                              ),
+                            ]),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'الدروس المعروضة: ${filterLessonsByLevel(lessons, selectedLevel).length}',
+                            key: const Key('level_lesson_count'),
+                            style: const TextStyle(
+                              fontSize: 13, color: Color(0xFF667085)),
+                          ),
+                          const SizedBox(height: 16),
                           for (var i = 0; i < lessons.length; i++)
-                            Padding(
+                            if (selectedLevel == null || lessons[i].level == selectedLevel)
+                              Padding(
                               padding: const EdgeInsets.only(bottom: 14),
                               child: Material(
                                 color: Colors.white,
