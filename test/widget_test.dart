@@ -460,27 +460,67 @@ void main() {
     expect(find.text('السؤال 1 من 6'), findsOneWidget);
     expect(find.text('Variable'), findsOneWidget);
   });
-  testWidgets('six-question quiz saves score and advances to new words', (tester) async {
+  testWidgets('correct quiz answers advance automatically and save score',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({});
+    final questions = buildQuizCards(0);
+    await tester.pumpWidget(const MaterialApp(home: QuizPage()));
+    await tester.pumpAndSettle();
+    expect(find.text('Variable'), findsOneWidget);
+    for (var i = 0; i < questions.length; i++) {
+      expect(find.text('السؤال ${i + 1} من 6'), findsOneWidget);
+      final correctChoice = List<int>.generate(4, (j) => j).singleWhere((j) {
+        final option = tester.widget<OutlinedButton>(
+          find.byKey(Key('quiz_choice_$j')),
+        );
+        return (option.child! as Text).data == questions[i].translation;
+      });
+      await tester.tap(find.byKey(Key('quiz_choice_$correctChoice')));
+      await tester.pump();
+      expect(find.text('إجابة صحيحة! الانتقال تلقائيًا...'),
+        findsOneWidget);
+      expect(find.byKey(const Key('quiz_next')), findsNothing);
+      // Let the success state remain visible briefly before the timer fires.
+      await tester.pump(const Duration(milliseconds: 750));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('نتيجتك: 6 من 6'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('quiz_attempts'), 1);
+    expect(prefs.getInt('quiz_last_score'), 6);
+    await tester.tap(find.text('اختبار جديد'));
+    await tester.pumpAndSettle();
+    expect(find.text('Constant'), findsOneWidget);
+  });
+
+  testWidgets('wrong quiz answer requires manual continuation',
+      (tester) async {
     await tester.binding.setSurfaceSize(const Size(900, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const MaterialApp(home: QuizPage()));
     await tester.pumpAndSettle();
-    expect(find.text('Variable'), findsOneWidget);
-    for (var i = 0; i < 6; i++) {
-      expect(find.text('السؤال ${i + 1} من 6'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('quiz_choice_0')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('quiz_next')));
-      await tester.pumpAndSettle();
-    }
-    expect(find.textContaining('نتيجتك:'), findsOneWidget);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getInt('quiz_attempts'), 1);
-    expect(prefs.getInt('quiz_last_score'), isNotNull);
-    await tester.tap(find.text('اختبار جديد'));
+
+    final wrongChoice = List<int>.generate(4, (j) => j).firstWhere((j) {
+      final option = tester.widget<OutlinedButton>(
+        find.byKey(Key('quiz_choice_$j')),
+      );
+      return (option.child! as Text).data != lessons.first.cards.first.translation;
+    });
+    await tester.tap(find.byKey(Key('quiz_choice_$wrongChoice')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 850));
     await tester.pumpAndSettle();
-    expect(find.text('Constant'), findsOneWidget);
+
+    expect(find.text('السؤال 1 من 6'), findsOneWidget);
+    expect(find.byKey(const Key('quiz_next')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quiz_next')));
+    await tester.pumpAndSettle();
+    expect(find.text('السؤال 2 من 6'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('quiz_attempts'), isNull);
   });
 
   testWidgets('favorites can be saved, filtered and reopened offline', (tester) async {
