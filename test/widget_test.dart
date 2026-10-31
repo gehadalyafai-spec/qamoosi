@@ -7,6 +7,26 @@ import 'package:qamoosi/core/quiz_stats.dart';
 import 'package:qamoosi/core/daily_learning_progress.dart';
 import 'package:qamoosi/features/achievements/achievements_panel.dart';
 
+/// A home action may not exist in the element tree until its sliver is
+/// scrolled into view. Move it away from the floating bottom navigation
+/// before tapping so the test behaves like a real user.
+Future<void> openHomeAction(WidgetTester tester, Key actionKey) async {
+  final action = find.byKey(actionKey);
+  await tester.scrollUntilVisible(
+    action,
+    180,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await Scrollable.ensureVisible(
+    tester.element(action),
+    alignment: 0.25,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(action);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -151,13 +171,7 @@ void main() {
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
     expect(find.text('الإنجليزية التقنية'), findsOneWidget);
-    await Scrollable.ensureVisible(
-      tester.element(find.byKey(const Key('lesson_0'))),
-      alignment: 0.3,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('lesson_0')));
-    await tester.pumpAndSettle();
+    await openHomeAction(tester, const Key('lesson_0'));
     expect(find.text('Variable'), findsOneWidget);
     await tester.tap(find.byKey(const Key('flip_card')));
     await tester.pumpAndSettle();
@@ -201,10 +215,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('open_quiz')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('open_quiz')));
-    await tester.pumpAndSettle();
+    await openHomeAction(tester, const Key('open_quiz'));
     expect(find.text('اختبار الكلمات'), findsOneWidget);
     expect(find.text('السؤال 1 من 6'), findsOneWidget);
     expect(find.text('Variable'), findsOneWidget);
@@ -236,8 +247,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('open_word_search')));
-    await tester.pumpAndSettle();
+    await openHomeAction(tester, const Key('open_word_search'));
     expect(find.text('البحث في قاموسي'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('word_search_field')), 'Variable');
     await tester.pumpAndSettle();
