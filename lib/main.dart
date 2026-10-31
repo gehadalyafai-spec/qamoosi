@@ -77,6 +77,11 @@ const lessons = <Lesson>[
     CardEntry('function', 'Function', 'فانكشن', 'دالة', 'int add(int a, int b) => a + b;'),
     CardEntry('parameter', 'Parameter', 'باراميتر', 'معامل الدالة', 'void greet(String name) {}'),
     CardEntry('return', 'Return', 'ريتيرن', 'إرجاع قيمة', 'return total;'),
+    CardEntry("string", "String", "سترينغ", "سلسلة نصية", "String name = 'Qamoosi';"),
+    CardEntry("integer", "Integer", "إنتِجَر", "عدد صحيح", "int cards = 30;"),
+    CardEntry("boolean", "Boolean", "بوليَن", "قيمة منطقية", "bool isComplete = false;"),
+    CardEntry("list", "List", "لِست", "قائمة", "final words = ['File', 'Folder'];"),
+    CardEntry("object", "Object", "أوبجِكت", "كائن", "final date = DateTime.now();"),
   ]),
   Lesson('الأخطاء والتطوير', [
     CardEntry('bug', 'Bug', 'بَغ', 'خلل برمجي', 'Fix the bug.'),
@@ -84,6 +89,11 @@ const lessons = <Lesson>[
     CardEntry('syntax', 'Syntax', 'سينتاكس', 'قواعد الصياغة البرمجية', 'Syntax error'),
     CardEntry('build', 'Build', 'بيلد', 'بناء التطبيق', 'flutter build apk'),
     CardEntry('release', 'Release', 'ريليس', 'إصدار للتوزيع', 'flutter build apk --release'),
+    CardEntry("error", "Error", "إيرَر", "خطأ", "Error: file not found."),
+    CardEntry("exception", "Exception", "إكسبشن", "استثناء", "throw Exception('Invalid input');"),
+    CardEntry("test", "Test", "تِست", "اختبار", "flutter test"),
+    CardEntry("fix", "Fix", "فِكس", "إصلاح", "Fix the broken search."),
+    CardEntry("deploy", "Deploy", "دِبلوي", "نشر التطبيق", "Deploy the app to the server."),
   ], level: LearningLevel.intermediate),
   Lesson('Git وGitHub', [
     CardEntry('repository', 'Repository', 'ريبوزيتوري', 'مستودع المشروع', 'git clone URL'),
@@ -91,6 +101,11 @@ const lessons = <Lesson>[
     CardEntry('commit', 'Commit', 'كومِت', 'تسجيل تغييرات', 'git commit -m "update"'),
     CardEntry('push', 'Push', 'بُش', 'رفع التغييرات', 'git push origin main'),
     CardEntry('pull', 'Pull', 'بُل', 'جلب التحديثات', 'git pull origin main'),
+    CardEntry("git", "Git", "جِت", "نظام إدارة الإصدارات", "git --version"),
+    CardEntry("github", "GitHub", "جِت هَب", "منصة استضافة المستودعات", "Open a pull request on GitHub."),
+    CardEntry("merge", "Merge", "ميرج", "دمج الفروع", "git merge development"),
+    CardEntry("clone", "Clone", "كلون", "استنساخ المستودع", "git clone REPO_URL"),
+    CardEntry("status", "Status", "ستاتَس", "حالة الملفات", "git status"),
   ], level: LearningLevel.intermediate),
 
   Lesson('الملفات والمجلدات', [
@@ -99,6 +114,11 @@ const lessons = <Lesson>[
     CardEntry('path', 'Path', 'باث', 'مسار الملف', 'lib/main.dart'),
     CardEntry('save', 'Save', 'سيف', 'حفظ', 'Save your changes.'),
     CardEntry('open', 'Open', 'أوبِن', 'فتح', 'Open the project.'),
+    CardEntry("directory", "Directory", "دايركتوري", "دليل أو مجلد", "Directory: lib/features/"),
+    CardEntry("extension", "Extension", "إكستنشن", "امتداد الملف", "main.dart"),
+    CardEntry("rename", "Rename", "ري نيم", "إعادة تسمية", "Rename notes.txt to summary.txt."),
+    CardEntry("delete", "Delete", "دِليت", "حذف", "Delete an unused file."),
+    CardEntry("copy", "Copy", "كوبي", "نسخ", "Copy the file to a backup folder."),
   ]),
   Lesson('الويب وقواعد البيانات', [
     CardEntry('server', 'Server', 'سيرفر', 'خادم', 'The server is running.'),
@@ -106,6 +126,11 @@ const lessons = <Lesson>[
     CardEntry('database', 'Database', 'داتابيس', 'قاعدة بيانات', 'Store data in the database.'),
     CardEntry('api', 'API', 'إيه بي آي', 'واجهة برمجة التطبيقات', 'Call the API endpoint.'),
     CardEntry('request', 'Request', 'ريكويست', 'طلب', 'Send a request to the server.'),
+    CardEntry("network", "Network", "نِتوورك", "شبكة", "Check the network connection."),
+    CardEntry("http", "HTTP", "إتش تي تي بي", "بروتوكول الويب", "GET /api/products HTTP/1.1"),
+    CardEntry("endpoint", "Endpoint", "إندبوينت", "نقطة اتصال برمجية", "GET /api/orders"),
+    CardEntry("response", "Response", "رِسبونس", "استجابة", "HTTP 200 OK"),
+    CardEntry("json", "JSON", "جَيْسُن", "صيغة تبادل بيانات", "{\"ok\": true}"),
   ], level: LearningLevel.intermediate),
   Lesson('تشغيل البرامج', [
     CardEntry('run', 'Run', 'رَن', 'تشغيل', 'flutter run'),
@@ -113,6 +138,11 @@ const lessons = <Lesson>[
     CardEntry('output', 'Output', 'آوتبُت', 'مخرجات', 'Print the output.'),
     CardEntry('input', 'Input', 'إنبُت', 'مدخلات', 'Enter your input.'),
     CardEntry('result', 'Result', 'ريزَلت', 'نتيجة', 'Show the result.'),
+    CardEntry("print", "Print", "برِنت", "طباعة المخرجات", "print('Hello');"),
+    CardEntry("command", "Command", "كوماند", "أمر", "flutter doctor"),
+    CardEntry("terminal", "Terminal", "تيرمِنَل", "الطرفية", "Open the terminal in VS Code."),
+    CardEntry("program", "Program", "بروغرام", "برنامج", "void main() { print('Hi'); }"),
+    CardEntry("process", "Process", "بروسِس", "عملية قيد التشغيل", "The build process finished."),
   ]),
 ];
 
