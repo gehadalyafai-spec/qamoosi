@@ -1390,7 +1390,9 @@ List<CardEntry> buildQuizCards(int completedAttempts) {
 }
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+  const QuizPage({super.key, this.speaker});
+
+  final WordSpeaker? speaker;
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -1401,6 +1403,7 @@ class _QuizPageState extends State<QuizPage> {
   Timer? _autoAdvanceTimer;
   final ScrollController _choicesScrollController = ScrollController(keepScrollOffset: false);
   final List<QuizMistake> _mistakes = [];
+  late final WordSpeaker _speaker;
 
   static final List<CardEntry> _allCards = [
     for (final lesson in lessons) ...lesson.cards,
@@ -1419,6 +1422,7 @@ class _QuizPageState extends State<QuizPage> {
   @override
   void initState() {
     super.initState();
+    _speaker = widget.speaker ?? FlutterWordSpeaker();
     _loadQuiz();
   }
 
@@ -1426,12 +1430,14 @@ class _QuizPageState extends State<QuizPage> {
   void dispose() {
     _autoAdvanceTimer?.cancel();
     _choicesScrollController.dispose();
+    unawaited(_speaker.stop().catchError((Object _) {}));
     super.dispose();
   }
 
   Future<void> _loadQuiz() async {
     _autoAdvanceTimer?.cancel();
     _autoAdvanceTimer = null;
+    unawaited(_speaker.stop().catchError((Object _) {}));
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     final stats = QuizStats.fromPreferences(prefs);
@@ -1518,6 +1524,7 @@ class _QuizPageState extends State<QuizPage> {
     if (selected == null || _saving || _finished) return;
     _autoAdvanceTimer?.cancel();
     _autoAdvanceTimer = null;
+    unawaited(_speaker.stop().catchError((Object _) {}));
     if (index + 1 < _cards.length) {
       setState(() {
         index++;
@@ -1662,7 +1669,25 @@ class _QuizPageState extends State<QuizPage> {
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 36,
                                   fontWeight: FontWeight.w800, color: navy)),
-                              const SizedBox(height: 29),
+                              const SizedBox(height: 7),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  WordPronunciationButton(
+                                    key: const Key('quiz_speak_word'),
+                                    word: _cards[index].word,
+                                    speaker: _speaker,
+                                  ),
+                                  const SizedBox(width: 9),
+                                  WordPronunciationButton(
+                                    key: const Key('quiz_speak_slow'),
+                                    word: _cards[index].word,
+                                    speaker: _speaker,
+                                    slowly: true,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
                               for (var i = 0; i < choices.length; i++) ...[
                                 OutlinedButton(
                                   key: Key('quiz_choice_$i'),
