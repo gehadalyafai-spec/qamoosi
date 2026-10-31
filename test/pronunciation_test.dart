@@ -140,7 +140,8 @@ void main() {
     await tester.tap(find.byKey(const Key('flip_card')));
     await tester.pumpAndSettle();
     expect(find.text('متغير'), findsOneWidget);
-    await tester.pageBack();
+    // Replacing the root route disposes the speaking page and stops audio.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pumpAndSettle();
     expect(fake.stopCalls, greaterThanOrEqualTo(1));
   });
