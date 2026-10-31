@@ -54,7 +54,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('إنجازاتي').last);
     await tester.pumpAndSettle();
-    expect(find.text('أتقنت 1 من 180 بطاقة'), findsOneWidget);
+    expect(find.text('أتقنت 1 من 300 بطاقة'), findsOneWidget);
     expect(find.text('دروس مكتملة'), findsOneWidget);
     expect(find.text('مستحقة للمراجعة'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -73,9 +73,9 @@ void main() {
     expect(find.text('تفاصيل الدروس'), findsOneWidget);
   });
 
-  test('quiz covers all eighteen lessons in three consecutive attempts', () {
-    expect(lessons.length, 18);
-    for (var attempt = 0; attempt < 3; attempt++) {
+  test('quiz covers all thirty lessons in five consecutive attempts', () {
+    expect(lessons.length, 30);
+    for (var attempt = 0; attempt < 5; attempt++) {
       final cards = buildQuizCards(attempt);
       expect(cards.length, 6);
       expect(cards.map((card) => card.id).toSet().length, 6);
@@ -86,12 +86,14 @@ void main() {
     expect(buildQuizCards(0).first.word, 'Variable');
     expect(buildQuizCards(1).first.word, 'CPU');
     expect(buildQuizCards(2).first.word, 'Table');
-    expect(buildQuizCards(3).first.word, 'Constant');
+    expect(buildQuizCards(3).first.word, 'Smartphone');
+    expect(buildQuizCards(4).first.word, 'Catalog');
+    expect(buildQuizCards(5).first.word, 'Constant');
   });
 
-  test('six-question quizzes cover all 180 terms in thirty attempts', () {
+  test('six-question quizzes cover all 300 terms in fifty attempts', () {
     final seen = <String>{};
-    for (var attempt = 0; attempt < 30; attempt++) {
+    for (var attempt = 0; attempt < 50; attempt++) {
       final questions = buildQuizCards(attempt);
       expect(questions.length, 6);
       for (final card in questions) {
@@ -99,8 +101,8 @@ void main() {
           reason: 'Duplicate question for ${card.id} before full rotation');
       }
     }
-    expect(seen.length, 180);
-    expect(buildQuizCards(30).first.id, 'variable');
+    expect(seen.length, 300);
+    expect(buildQuizCards(50).first.id, 'variable');
     expect(buildQuizCards(-1).first.id, 'variable');
   });
 
@@ -322,13 +324,15 @@ void main() {
     final beginner = filterLessonsByLevel(lessons, LearningLevel.beginner);
     final intermediate = filterLessonsByLevel(lessons, LearningLevel.intermediate);
     final all = filterLessonsByLevel(lessons, null);
-    expect(all.length, 18);
-    expect(beginner.length, 7);
-    expect(intermediate.length, 11);
+    expect(all.length, 30);
+    expect(beginner.length, 11);
+    expect(intermediate.length, 19);
     expect(beginner.map((lesson) => lesson.title).toSet(), {
       'أساسيات البرمجة', 'الملفات والمجلدات', 'تشغيل البرامج',
       'الحاسوب ومكوناته', 'عناصر واجهة التطبيق',
       'التصميم وتجربة المستخدم', 'الحسابات والحماية الأساسية',
+      'الهاتف والتطبيقات اليومية', 'الإنترنت والاتصال بالشبكة',
+      'الملفات والمستندات الرقمية', 'إدارة المشاريع والعمل الجماعي',
     });
     expect(intermediate.map((lesson) => lesson.title).toSet(), {
       'الأخطاء والتطوير', 'Git وGitHub', 'الويب وقواعد البيانات',
@@ -336,12 +340,16 @@ void main() {
       'قواعد البيانات وSQL', 'تقنيات الويب الحديثة',
       'واجهات API والاتصال', 'مفاهيم الأمان الرقمي',
       'السحابة والتشغيل الاحترافي', 'الذكاء الاصطناعي وتحليل البيانات',
+      'تطوير تطبيقات الجوال ونشرها', 'بنية البرامج وصيانتها',
+      'التجارة الإلكترونية وإدارة المنتجات', 'الطلبات والسداد الإلكتروني',
+      'الشحن والطلبات وخدمة العملاء', 'التكاملات وأحداث الأنظمة',
+      'تحليل الأعمال ولوحات البيانات', 'نماذج اللغة والذكاء الاصطناعي',
     });
     final idsByLevel = {
       for (final lesson in beginner) ...lesson.cards.map((card) => card.id),
       for (final lesson in intermediate) ...lesson.cards.map((card) => card.id),
     };
-    expect(idsByLevel.length, 180);
+    expect(idsByLevel.length, 300);
     expect(filterLessonsByLevel(const [], null), isEmpty);
   });
 
@@ -360,11 +368,11 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 18'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 30'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('level_intermediate')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 11'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 19'), findsOneWidget);
     expect(
       tester.widget<ChoiceChip>(
         find.byKey(const Key('level_intermediate')),
@@ -374,7 +382,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('level_beginner')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 7'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 11'), findsOneWidget);
     expect(
       tester.widget<ChoiceChip>(
         find.byKey(const Key('level_beginner')),
@@ -384,9 +392,54 @@ void main() {
 
     await tester.tap(find.byKey(const Key('level_all')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 18'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 30'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('known_cards'), ['variable']);
+  });
+
+  test('lesson quick search supports title, English and Arabic offline', () {
+    final integration = lessons.singleWhere((lesson) =>
+        lesson.title == 'التكاملات وأحداث الأنظمة');
+    expect(matchesLessonQuery(integration, 'webhook'), isTrue);
+    expect(matchesLessonQuery(integration, 'ويب هوك'), isTrue);
+    expect(matchesLessonQuery(integration, 'التكاملات'), isTrue);
+    expect(matchesLessonQuery(integration, '  '), isTrue);
+    expect(matchesLessonQuery(integration, 'ألعاب'), isFalse);
+    expect(matchesLessonQuery(lessons.first, 'WEBHOOK'), isFalse);
+  });
+
+  testWidgets('home lesson search filters catalog without modifying progress',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable', 'extra_smartphone'],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    final field = find.byKey(const Key('lesson_search_field'));
+    await tester.scrollUntilVisible(
+      field, 200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(field, 'Webhook');
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 1'), findsOneWidget);
+    expect(find.text('التكاملات وأحداث الأنظمة'), findsOneWidget);
+    expect(find.byKey(const Key('no_lesson_matches')), findsNothing);
+
+    await tester.enterText(field, 'لا توجد كلمة بهذا الاسم');
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 0'), findsOneWidget);
+    expect(find.byKey(const Key('no_lesson_matches')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('clear_lesson_search')));
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 30'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('known_cards'),
+      ['variable', 'extra_smartphone']);
   });
 
   test('expansion preserves original learning identifiers and their order', () {
@@ -406,10 +459,10 @@ void main() {
     }
   });
 
-  test('vocabulary has eighteen lessons and 180 unique cards', () {
-    expect(lessons.length, 18);
+  test('vocabulary has thirty lessons and 300 unique cards', () {
+    expect(lessons.length, 30);
     final cards = [for (final lesson in lessons) ...lesson.cards];
-    expect(cards.length, 180);
+    expect(cards.length, 300);
     expect(lessons.every((lesson) => lesson.cards.length == 10), isTrue);
     expect(cards.map((card) => card.id).toSet().length, cards.length);
     expect(cards.every((card) => card.word.isNotEmpty && card.translation.isNotEmpty && card.pronunciation.isNotEmpty), isTrue);
