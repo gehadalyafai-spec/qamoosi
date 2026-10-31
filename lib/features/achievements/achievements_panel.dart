@@ -15,7 +15,7 @@ class LessonAchievement {
   final int completed;
   final int total;
 
-  double get progress => total == 0 ? 0 : (completed / total).clamp(0.0, 1.0);
+  double get progress => total == 0 ? 0 : (completed / total).clamp(0.0, 1.0).toDouble();
   bool get isCompleted => total > 0 && completed >= total;
 }
 
@@ -46,7 +46,7 @@ class AchievementsPanel extends StatelessWidget {
     final total = lessons.fold<int>(0, (value, lesson) => value + lesson.total);
     final learned = lessons.fold<int>(0, (value, lesson) => value + lesson.completed);
     final finished = lessons.where((lesson) => lesson.isCompleted).length;
-    final fraction = total == 0 ? 0.0 : (learned / total).clamp(0.0, 1.0);
+    final fraction = total == 0 ? 0.0 : (learned / total).clamp(0.0, 1.0).toDouble();
 
     return ListView(
       key: const Key('achievements_scroll'),
