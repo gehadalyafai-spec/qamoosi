@@ -53,7 +53,7 @@ void main() {
     final rag = cards.singleWhere((card) => card.id == 'extra_rag');
     expect(matchesVocabularyQuery(checkout, 'إتمام الشراء'), isTrue);
     expect(matchesVocabularyQuery(webhook, 'Webhook'), isTrue);
-    expect(matchesVocabularyQuery(webhook, 'يُرسلها نظام'), isTrue);
+    expect(matchesVocabularyQuery(webhook, 'يرسلها نظام'), isTrue);
     expect(matchesVocabularyQuery(rag, 'توليد مدعوم بالاسترجاع'), isTrue);
     expect(matchesVocabularyQuery(rag, 'مصادر ذات صلة'), isTrue);
     expect(matchesLessonQuery(lessons[27], 'ويب هوك'), isTrue);
