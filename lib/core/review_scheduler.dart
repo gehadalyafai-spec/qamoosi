@@ -56,8 +56,8 @@ ReviewState scheduleReview({
   final previousSuccesses = previous?.successfulReviews ?? 0;
   final nextDays = switch (rating) {
     ReviewRating.again => 0,
-    ReviewRating.good => previousDays == 0 ? 1 : (previousDays * 2).clamp(1, 365),
-    ReviewRating.easy => previousDays == 0 ? 3 : (previousDays * 3).clamp(3, 365),
+    ReviewRating.good => previousDays == 0 ? 1 : (previousDays * 2).clamp(1, 365).toInt(),
+    ReviewRating.easy => previousDays == 0 ? 3 : (previousDays * 3).clamp(3, 365).toInt(),
   };
 
   return ReviewState(
