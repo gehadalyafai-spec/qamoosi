@@ -72,7 +72,7 @@ void main() {
     }
 
     expect(find.text('نتيجتك: 5 من 6'), findsOneWidget);
-    expect(find.text('لديك 1 كلمات تحتاج مراجعة.'), findsOneWidget);
+    expect(find.text('هناك كلمة واحدة تحتاج مراجعة.'), findsOneWidget);
     expect(find.byKey(const Key('quiz_review_mistakes')), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('quiz_attempts'), 1);
