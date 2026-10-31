@@ -1,3 +1,5 @@
+import 'vocabulary_expansion.dart';
+
 /// Additional beginner-friendly explanations for the existing offline cards.
 ///
 /// IDs intentionally match CardEntry.id. Changing an ID would break saved
@@ -15,7 +17,7 @@ class WordInsight {
   final String practiceQuestion;
 }
 
-const wordInsights = <String, WordInsight>{
+final wordInsights = <String, WordInsight>{
   "variable": WordInsight(
     explanation: "المتغير مكان نضع فيه قيمة باسم واضح، ويمكن أن تتغير هذه القيمة أثناء تشغيل البرنامج.",
     projectUse: "في قاموسي يتغير رقم البطاقة الحالية كلما انتقلت إلى كلمة جديدة.",
@@ -316,6 +318,13 @@ const wordInsights = <String, WordInsight>{
     projectUse: "عند بدء بناء تطبيق Flutter قد ينشئ النظام عمليات تنفذ أدوات البناء.",
     practiceQuestion: "هل العملية تمثل ملف البرنامج المخزن أم تنفيذه الجاري؟",
   ),
+  for (final lesson in expandedVocabulary)
+    for (final card in lesson.cards)
+      card.id: WordInsight(
+        explanation: card.explanation,
+        projectUse: card.projectUse,
+        practiceQuestion: card.practiceQuestion,
+      ),
 };
 
 WordInsight? wordInsightFor(String cardId) => wordInsights[cardId];
