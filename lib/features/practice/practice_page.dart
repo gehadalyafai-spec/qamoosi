@@ -14,6 +14,7 @@ class PracticePage extends StatefulWidget {
 }
 
 class _PracticePageState extends State<PracticePage> {
+  final ScrollController _scrollController = ScrollController();
   List<PracticeQuestion> _questions = const [];
   PracticeStats _stats = const PracticeStats();
   int _index = 0;
@@ -29,6 +30,12 @@ class _PracticePageState extends State<PracticePage> {
   void initState() {
     super.initState();
     _prepare();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _prepare() async {
@@ -78,6 +85,15 @@ class _PracticePageState extends State<PracticePage> {
         _correct++;
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _next() async {
@@ -90,6 +106,9 @@ class _PracticePageState extends State<PracticePage> {
         _selected = null;
         _saveError = null;
       });
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
       return;
     }
     setState(() {
@@ -191,6 +210,7 @@ class _PracticePageState extends State<PracticePage> {
           Expanded(
             child: ListView(
               key: const Key('practice_question_scroll'),
+              controller: _scrollController,
               children: [
                 Container(
                   padding: const EdgeInsets.all(20),
