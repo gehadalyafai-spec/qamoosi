@@ -1020,6 +1020,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
   String query = '';
   Set<String> favorites = <String>{};
   bool favoritesOnly = false;
+  bool favoritesLoading = true;
   bool savingFavorite = false;
 
   @override
@@ -1037,11 +1038,13 @@ class _WordSearchPageState extends State<WordSearchPage> {
       final knownIds = allCards.map((card) => card.id).toSet();
       setState(() {
         favorites = saved.intersection(knownIds);
+        favoritesLoading = false;
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
+      setState(() => favoritesLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تعذّر تحميل الكلمات المفضلة')),
       );
@@ -1049,7 +1052,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
   }
 
   Future<void> _toggleFavorite(String id) async {
-    if (savingFavorite) {
+    if (savingFavorite || favoritesLoading) {
       return;
     }
     final previous = favorites;
@@ -1191,7 +1194,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
                               tooltip: favorites.contains(card.id)
                                   ? 'إزالة من المفضلة'
                                   : 'إضافة إلى المفضلة',
-                              onPressed: savingFavorite
+                              onPressed: savingFavorite || favoritesLoading
                                   ? null
                                   : () => _toggleFavorite(card.id),
                               icon: Icon(
