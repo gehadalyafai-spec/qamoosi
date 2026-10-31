@@ -487,6 +487,8 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('نتيجتك: 6 من 6'), findsOneWidget);
+    expect(find.byKey(const Key('quiz_no_mistakes')), findsOneWidget);
+    expect(find.byKey(const Key('quiz_review_mistakes')), findsNothing);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('quiz_attempts'), 1);
     expect(prefs.getInt('quiz_last_score'), 6);
