@@ -128,6 +128,13 @@ class _HomePageState extends State<HomePage> {
     ));
   }
 
+  Future<void> _openQuiz() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const QuizPage()),
+    );
+  }
+
   Future<void> _openReview() async {
     final now = DateTime.now();
     final dueCards = [
@@ -261,6 +268,31 @@ class _HomePageState extends State<HomePage> {
                           const Text('اختر درسًا وابدأ رحلة التعلم',
                             style: TextStyle(color: Color(0xFF667085))),
                           const SizedBox(height: 18),
+                          Material(
+                            color: const Color(0xFF101D32),
+                            borderRadius: BorderRadius.circular(22),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(22),
+                              onTap: _openQuiz,
+                              child: const Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Row(children: [
+                                  Icon(Icons.quiz_rounded, color: Color(0xFFFFB184), size: 32),
+                                  SizedBox(width: 15),
+                                  Expanded(child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('اختبر معلوماتك', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                                      SizedBox(height: 5),
+                                      Text('اختبار سريع من 5 أسئلة', style: TextStyle(color: Color(0xFFDDE9F4))),
+                                    ],
+                                  )),
+                                  Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                                ]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
                           for (var i = 0; i < lessons.length; i++)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 14),
@@ -495,5 +527,117 @@ class _LessonPageState extends State<LessonPage> {
         ),
       ),
     );
+  }
+}
+
+
+class QuizPage extends StatefulWidget {
+  const QuizPage({super.key});
+
+  @override
+  State<QuizPage> createState() => _QuizPageState();
+}
+
+class _QuizPageState extends State<QuizPage> {
+  static final List<CardEntry> _cards = [
+    for (final lesson in lessons) ...lesson.cards,
+  ];
+  int index = 0;
+  int correct = 0;
+  int? selected;
+
+  List<String> get options {
+    final answer = _cards[index].translation;
+    final distractors = _cards.where((c) => c.id != _cards[index].id)
+        .map((c) => c.translation).where((value) => value != answer).toList();
+    final choices = <String>[answer];
+    for (var offset = 0; offset < distractors.length && choices.length < 4; offset++) {
+      final candidate = distractors[(index * 3 + offset) % distractors.length];
+      if (!choices.contains(candidate)) choices.add(candidate);
+    }
+    choices.shuffleWithSeed(index + 42);
+    return choices;
+  }
+
+  void answer(int choice) {
+    if (selected != null) return;
+    setState(() {
+      selected = choice;
+      if (options[choice] == _cards[index].translation) correct++;
+    });
+  }
+
+  void next() {
+    if (index == 4) {
+      setState(() => index++);
+    } else {
+      setState(() {
+        index++;
+        selected = null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final finished = index >= 5;
+    final choices = finished ? <String>[] : options;
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('اختبار الكلمات')),
+        body: SafeArea(child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: finished
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.emoji_events_rounded, size: 76, color: Color(0xFFFF653B)),
+                  const SizedBox(height: 18),
+                  const Text('أحسنت! انتهى الاختبار', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 12),
+                  Text('نتيجتك: $correct من 5', style: const TextStyle(fontSize: 21)),
+                  const SizedBox(height: 26),
+                  FilledButton(onPressed: () => Navigator.pop(context), child: const Text('العودة للرئيسية')),
+                ]))
+              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Text('السؤال ${index + 1} من 5', style: const TextStyle(fontSize: 16, color: Color(0xFF667085))),
+                  const SizedBox(height: 12),
+                  LinearProgressIndicator(value: (index + 1) / 5, minHeight: 7, borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 42),
+                  const Text('ما معنى الكلمة التالية؟', style: TextStyle(fontSize: 19)),
+                  const SizedBox(height: 16),
+                  Text(_cards[index].word, textDirection: TextDirection.ltr, textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Color(0xFF101D32))),
+                  const SizedBox(height: 36),
+                  for (var i = 0; i < choices.length; i++) ...[
+                    OutlinedButton(
+                      onPressed: selected == null ? () => answer(i) : null,
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.all(18),
+                        backgroundColor: selected != null && choices[i] == _cards[index].translation
+                            ? const Color(0xFFE2F5E8)
+                            : selected == i ? const Color(0xFFFFE4DE) : Colors.white),
+                      child: Text(choices[i], style: const TextStyle(fontSize: 16)),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if (selected != null) ...[
+                    const Spacer(),
+                    FilledButton(onPressed: next, child: Text(index == 4 ? 'عرض النتيجة' : 'السؤال التالي')),
+                  ],
+                ]),
+        )),
+      ),
+    );
+  }
+}
+
+extension _SeededShuffle<T> on List<T> {
+  void shuffleWithSeed(int seed) {
+    for (var i = length - 1; i > 0; i--) {
+      final j = seed % (i + 1);
+      final item = this[i];
+      this[i] = this[j];
+      this[j] = item;
+      seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
+    }
   }
 }
