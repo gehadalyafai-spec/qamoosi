@@ -91,6 +91,7 @@ class DailyLearningProgress {
         if (key is! String ||
             !RegExp(r'^\d{4}-\d{2}-\d{2}.hasMatch(key) ||
             DateTime.tryParse(key) == null ||
+            dateKey(DateTime.parse(key)) != key ||
             cards is! List) {
           continue;
         }
