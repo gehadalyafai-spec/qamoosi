@@ -51,6 +51,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('الموقف 1 من 2'), findsOneWidget);
+    expect(find.text('مرات الخطأ السابقة: 3'), findsOneWidget);
     expect(find.text(practiceQuestions.first.prompt), findsOneWidget);
     await tester.tap(find.byKey(const Key('practice_choice_1')));
     await tester.pumpAndSettle();
@@ -59,6 +60,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('الموقف 2 من 2'), findsOneWidget);
+    expect(find.text('مرات الخطأ السابقة: 1'), findsOneWidget);
     expect(find.text(practiceQuestions[2].prompt), findsOneWidget);
     await tester.tap(find.byKey(const Key('practice_choice_0')));
     await tester.pumpAndSettle();
