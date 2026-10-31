@@ -86,6 +86,7 @@ bool matchesLessonQuery(Lesson lesson, String query) {
   return lesson.title.toLowerCase().contains(term) ||
       lesson.cards.any((card) =>
           card.word.toLowerCase().contains(term) ||
+          card.pronunciation.toLowerCase().contains(term) ||
           card.translation.toLowerCase().contains(term));
 }
 
