@@ -243,6 +243,47 @@ void main() {
     expect(find.text('Constant'), findsOneWidget);
   });
 
+  testWidgets('favorites can be saved, filtered and reopened offline', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MaterialApp(home: WordSearchPage()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('word_search_field')), 'Variable',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('favorite_variable')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('المفضلة (1)'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('favorite_word_ids_v1'), ['variable']);
+
+    await tester.tap(find.byKey(const Key('favorites_filter')));
+    await tester.pumpAndSettle();
+    expect(find.text('متغير'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('word_search_field')), 'Function',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('لم نعثر على كلمات مطابقة'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const MaterialApp(home: WordSearchPage()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('favorites_filter')));
+    await tester.pumpAndSettle();
+    expect(find.text('Variable'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('favorite_variable')));
+    await tester.pumpAndSettle();
+    expect(find.text('المفضلة (0)'), findsOneWidget);
+    expect(find.text('لم نعثر على كلمات مطابقة'), findsOneWidget);
+    expect(prefs.getStringList('favorite_word_ids_v1'), isEmpty);
+  });
+
   testWidgets('search finds English and Arabic vocabulary', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
