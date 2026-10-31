@@ -157,6 +157,92 @@ void main() {
     expect(lessonProgress(lesson, {'unknown-card'}), 0);
   });
 
+  test('learning path suggests unfinished beginner lessons first', () {
+    expect(recommendNextLesson(lessons, {} )?.title, 'أساسيات البرمجة');
+
+    final basicsDone = {
+      for (final card in lessons.first.cards) card.id,
+    };
+    expect(
+      recommendNextLesson(lessons, basicsDone)?.title,
+      'الملفات والمجلدات',
+    );
+
+    final beginnerDone = {
+      for (final lesson in lessons)
+        if (lesson.level == LearningLevel.beginner)
+          for (final card in lesson.cards) card.id,
+    };
+    expect(
+      recommendNextLesson(lessons, beginnerDone)?.title,
+      'الأخطاء والتطوير',
+    );
+    final allDone = {
+      for (final lesson in lessons)
+        for (final card in lesson.cards) card.id,
+    };
+    expect(recommendNextLesson(lessons, allDone), isNull);
+    expect(recommendNextLesson(const <Lesson>[], {}), isNull);
+    expect(
+      recommendNextLesson(
+        const [Lesson('فارغ', <CardEntry>[])],
+        {},
+      ),
+      isNull,
+    );
+  });
+
+  test('learning path resumes remaining cards with unchanged IDs', () {
+    final original = lessons.first;
+    final remaining = lessonRemainingToLearn(original, {'variable'});
+    expect(original.cards.length, 5);
+    expect(remaining.cards.length, 4);
+    expect(remaining.title, original.title);
+    expect(remaining.level, original.level);
+    expect(remaining.cards.first.word, 'Constant');
+    expect(remaining.cards.map((card) => card.id).toSet(),
+      {'constant', 'function', 'parameter', 'return'});
+    expect(lessonRemainingToLearn(original, {
+      for (final card in original.cards) card.id,
+    }).cards, isEmpty);
+  });
+
+  testWidgets('recommended path opens first unlearned card', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable'],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await openHomeAction(tester, const Key('learning_path_start'));
+    expect(find.text('أساسيات البرمجة'), findsOneWidget);
+    expect(find.text('Constant'), findsOneWidget);
+    expect(find.text('البطاقة 1 من 4'), findsOneWidget);
+  });
+
+  testWidgets('completed path displays celebration instead of start',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'known_cards': [
+        for (final lesson in lessons)
+          for (final card in lesson.cards) card.id,
+      ],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('learning_path_complete')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('أكملت المسار الحالي'), findsOneWidget);
+    expect(find.byKey(const Key('learning_path_start')), findsNothing);
+  });
+
   test('levels partition all lessons without duplicate cards', () {
     final beginner = filterLessonsByLevel(lessons, LearningLevel.beginner);
     final intermediate = filterLessonsByLevel(lessons, LearningLevel.intermediate);
