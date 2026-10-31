@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'core/review_scheduler.dart';
@@ -1067,6 +1068,9 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  static const Duration correctAnswerDelay = Duration(milliseconds: 700);
+  Timer? _autoAdvanceTimer;
+
   static final List<CardEntry> _allCards = [
     for (final lesson in lessons) ...lesson.cards,
   ];
@@ -1087,7 +1091,15 @@ class _QuizPageState extends State<QuizPage> {
     _loadQuiz();
   }
 
+  @override
+  void dispose() {
+    _autoAdvanceTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadQuiz() async {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     final stats = QuizStats.fromPreferences(prefs);
@@ -1120,17 +1132,33 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void answer(int choice) {
-    if (selected != null || _saving) return;
+    if (selected != null || _saving || _finished) return;
     final choices = options;
     if (choice < 0 || choice >= choices.length) return;
+    final isCorrect = choices[choice] == _cards[index].translation;
+    final answeredIndex = index;
     setState(() {
       selected = choice;
-      if (choices[choice] == _cards[index].translation) correct++;
+      if (isCorrect) correct++;
     });
+
+    // Show the correct answer briefly, then continue without another tap.
+    // A wrong answer stays on the screen until the learner continues.
+    if (isCorrect) {
+      _autoAdvanceTimer?.cancel();
+      _autoAdvanceTimer = Timer(correctAnswerDelay, () {
+        if (mounted && index == answeredIndex &&
+            selected == choice && !_finished && !_saving) {
+          next();
+        }
+      });
+    }
   }
 
   Future<void> next() async {
-    if (selected == null || _saving) return;
+    if (selected == null || _saving || _finished) return;
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
     if (index + 1 < _cards.length) {
       setState(() {
         index++;
@@ -1257,7 +1285,27 @@ class _QuizPageState extends State<QuizPage> {
                           Text(_saveError!, style: const TextStyle(color: Colors.red)),
                           const SizedBox(height: 9),
                         ],
-                        if (selected != null)
+                        if (selected != null &&
+                            choices[selected!] == _cards[index].translation &&
+                            _saveError == null)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_rounded,
+                                  color: Color(0xFF21865B)),
+                                SizedBox(width: 8),
+                                Text('إجابة صحيحة! الانتقال تلقائيًا...',
+                                  style: TextStyle(
+                                    color: Color(0xFF21865B),
+                                    fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                          ),
+                        if (selected != null &&
+                            (choices[selected!] != _cards[index].translation ||
+                                _saveError != null))
                           FilledButton(
                             key: const Key('quiz_next'),
                             onPressed: _saving ? null : next,
