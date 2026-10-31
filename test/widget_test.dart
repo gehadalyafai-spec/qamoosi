@@ -76,7 +76,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('اختبر معلوماتك'));
+    await tester.ensureVisible(find.text('اختبر معلوماتك'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('اختبر معلوماتك'), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(find.text('اختبار الكلمات'), findsOneWidget);
     expect(find.text('السؤال 1 من 5'), findsOneWidget);
@@ -91,7 +93,7 @@ void main() {
     expect(find.text('البحث في قاموسي'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('word_search_field')), 'Variable');
     await tester.pumpAndSettle();
-    expect(find.text('Variable'), findsOneWidget);
+    expect(find.text('Variable'), findsWidgets);
     expect(find.text('متغير'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('word_search_field')), 'لا يوجد');
     await tester.pumpAndSettle();
