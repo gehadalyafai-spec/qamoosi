@@ -150,7 +150,7 @@ class WeeklyLearningPanel extends StatelessWidget {
                       alignment: Alignment.bottomCenter,
                       child: FractionallySizedBox(
                         heightFactor: (progress.fractionOn(day) * 0.9 + 0.1)
-                            .clamp(0.1, 1.0),
+                            .clamp(0.1, 1.0).toDouble(),
                         child: Container(
                           width: 23,
                           decoration: BoxDecoration(
