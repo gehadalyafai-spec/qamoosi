@@ -151,7 +151,10 @@ void main() {
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
     expect(find.text('الإنجليزية التقنية'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('lesson_0')));
+    await Scrollable.ensureVisible(
+      tester.element(find.byKey(const Key('lesson_0'))),
+      alignment: 0.3,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('lesson_0')));
     await tester.pumpAndSettle();
