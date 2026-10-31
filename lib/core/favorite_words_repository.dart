@@ -1,20 +1,23 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Stores bookmarked vocabulary on the current device for offline access.
-class FavoriteWordsRepository {
-  const FavoriteWordsRepository._();
+abstract final class FavoriteWordsRepository {
 
   static const storageKey = 'favorite_word_ids_v1';
 
   static Set<String> normalize(Iterable<String>? ids) {
-    if (ids == null) return <String>{};
+    if (ids == null) {
+      return <String>{};
+    }
     return ids.map((id) => id.trim()).where((id) => id.isNotEmpty).toSet();
   }
 
   static Set<String> toggle(Set<String> current, String cardId) {
     final id = cardId.trim();
     final result = normalize(current);
-    if (id.isEmpty) return result;
+    if (id.isEmpty) {
+      return result;
+    }
     if (!result.add(id)) {
       result.remove(id);
     }
