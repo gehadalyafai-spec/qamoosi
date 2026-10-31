@@ -1274,7 +1274,9 @@ class _QuizPageState extends State<QuizPage> {
                             )
                           else ...[
                             Text(
-                              'لديك ${_mistakes.length} كلمات تحتاج مراجعة.',
+                              _mistakes.length == 1
+                                  ? 'هناك كلمة واحدة تحتاج مراجعة.'
+                                  : 'هناك ${_mistakes.length} كلمات تحتاج مراجعة.',
                               key: const Key('quiz_mistake_summary'),
                               style: const TextStyle(
                                 color: Color(0xFF667085)),
@@ -1284,7 +1286,9 @@ class _QuizPageState extends State<QuizPage> {
                               key: const Key('quiz_review_mistakes'),
                               onPressed: _reviewMistakes,
                               icon: const Icon(Icons.school_outlined),
-                              label: Text('راجع ${_mistakes.length} كلمات'),
+                              label: Text(_mistakes.length == 1
+                                  ? 'راجع الكلمة'
+                                  : 'راجع ${_mistakes.length} كلمات'),
                             ),
                           ],
                           const SizedBox(height: 24),
