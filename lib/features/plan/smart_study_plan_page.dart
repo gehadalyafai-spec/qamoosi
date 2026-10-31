@@ -139,8 +139,8 @@ class _SmartStudyPlanPageState extends State<SmartStudyPlanPage> {
           key: const Key('smart_plan_goal'),
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [navy, Color(0xFF293D65)],
+            gradient: LinearGradient(
+              colors: [navy, const Color(0xFF293D65)],
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
             ),
@@ -214,7 +214,7 @@ class _SmartStudyPlanPageState extends State<SmartStudyPlanPage> {
               color: Color(0xFFB94824), fontWeight: FontWeight.w700)),
         ],
         const SizedBox(height: 25),
-        const Text('ماذا تتعلّم الآن؟',
+        Text('ماذا تتعلّم الآن؟',
           style: TextStyle(
             color: navy, fontSize: 23, fontWeight: FontWeight.w900)),
         const SizedBox(height: 6),
@@ -297,8 +297,8 @@ class _SmartStudyPlanPageState extends State<SmartStudyPlanPage> {
               color: const Color(0xFFE9F7ED),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Row(children: [
-              Icon(Icons.verified_rounded, color: green),
+            child: Row(children: [
+              const Icon(Icons.verified_rounded, color: green),
               SizedBox(width: 10),
               Expanded(child: Text(
                 'أنجزت هدف اليوم ولا توجد مراجعات مستحقة أو أخطاء معلّقة.',
