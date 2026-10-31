@@ -29,7 +29,7 @@ class QuizStats {
 
   static Future<QuizStats> record(SharedPreferences prefs, int score) async {
     final previous = fromPreferences(prefs);
-    final correct = score.clamp(0, 6);
+    final correct = score.clamp(0, 6).toInt();
     final updated = QuizStats(
       attempts: previous.attempts + 1,
       lastScore: correct,
