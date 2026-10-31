@@ -395,14 +395,14 @@ class _PracticePageState extends State<PracticePage> {
                           question.isCorrect(selected)
                               ? 'إجابة صحيحة!'
                               : 'الإجابة الأنسب: ${question.options[question.correctIndex]}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
                             color: navy,
                           ),
                         ),
                         const SizedBox(height: 9),
                         Text(question.explanation,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: navy, fontSize: 14, height: 1.6)),
                       ],
                     ),
