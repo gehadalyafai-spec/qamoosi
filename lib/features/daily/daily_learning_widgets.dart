@@ -181,7 +181,7 @@ class WeeklyLearningPanel extends StatelessWidget {
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
               color: navy)),
           const Spacer(),
-          Text('${progress.activeDays} أيام نشاط',
+          Text('أيام النشاط: ${progress.activeDays}',
             style: const TextStyle(color: muted, fontSize: 12)),
         ]),
       ]),
