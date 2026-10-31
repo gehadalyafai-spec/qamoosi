@@ -1262,24 +1262,6 @@ class _LessonPageState extends State<LessonPage> {
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(fontSize: 36,
                                     fontWeight: FontWeight.w900, color: navy)),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    WordPronunciationButton(
-                                      key: const Key('lesson_speak_normal'),
-                                      word: card.word,
-                                      speaker: _speaker,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    WordPronunciationButton(
-                                      key: const Key('lesson_speak_slow'),
-                                      word: card.word,
-                                      speaker: _speaker,
-                                      slowly: true,
-                                    ),
-                                  ],
-                                ),
                                 const SizedBox(height: 22),
                                 if (flipped) ...[
                                   Container(
@@ -1330,7 +1312,25 @@ class _LessonPageState extends State<LessonPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 9),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    WordPronunciationButton(
+                      key: const Key('lesson_speak_normal'),
+                      word: card.word,
+                      speaker: _speaker,
+                    ),
+                    const SizedBox(width: 10),
+                    WordPronunciationButton(
+                      key: const Key('lesson_speak_slow'),
+                      word: card.word,
+                      speaker: _speaker,
+                      slowly: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 Row(children: [
                   Expanded(child: OutlinedButton.icon(
                     onPressed: saving ? null : () => rate(ReviewRating.again),
