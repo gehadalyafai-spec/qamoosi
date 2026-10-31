@@ -42,11 +42,30 @@ class CardEntry {
   const CardEntry(this.id, this.word, this.pronunciation, this.translation, this.example);
 }
 
+enum LearningLevel { beginner, intermediate }
+
+extension LearningLevelLabel on LearningLevel {
+  String get label => switch (this) {
+    LearningLevel.beginner => 'مبتدئ',
+    LearningLevel.intermediate => 'متوسط',
+  };
+}
+
 class Lesson {
   final String title;
   final List<CardEntry> cards;
-  const Lesson(this.title, this.cards);
+  final LearningLevel level;
+  const Lesson(this.title, this.cards, {this.level = LearningLevel.beginner});
 }
+
+/// A null level means all lessons, including any levels added in the future.
+List<Lesson> filterLessonsByLevel(
+  Iterable<Lesson> catalog,
+  LearningLevel? level,
+) => [
+  for (final lesson in catalog)
+    if (level == null || lesson.level == level) lesson,
+];
 
 const lessons = <Lesson>[
   Lesson('أساسيات البرمجة', [
@@ -62,14 +81,14 @@ const lessons = <Lesson>[
     CardEntry('syntax', 'Syntax', 'سينتاكس', 'قواعد الصياغة البرمجية', 'Syntax error'),
     CardEntry('build', 'Build', 'بيلد', 'بناء التطبيق', 'flutter build apk'),
     CardEntry('release', 'Release', 'ريليس', 'إصدار للتوزيع', 'flutter build apk --release'),
-  ]),
+  ], level: LearningLevel.intermediate),
   Lesson('Git وGitHub', [
     CardEntry('repository', 'Repository', 'ريبوزيتوري', 'مستودع المشروع', 'git clone URL'),
     CardEntry('branch', 'Branch', 'برانش', 'فرع المشروع', 'git branch development'),
     CardEntry('commit', 'Commit', 'كومِت', 'تسجيل تغييرات', 'git commit -m "update"'),
     CardEntry('push', 'Push', 'بُش', 'رفع التغييرات', 'git push origin main'),
     CardEntry('pull', 'Pull', 'بُل', 'جلب التحديثات', 'git pull origin main'),
-  ]),
+  ], level: LearningLevel.intermediate),
 
   Lesson('الملفات والمجلدات', [
     CardEntry('file', 'File', 'فايل', 'ملف', 'Open the file.'),
@@ -84,7 +103,7 @@ const lessons = <Lesson>[
     CardEntry('database', 'Database', 'داتابيس', 'قاعدة بيانات', 'Store data in the database.'),
     CardEntry('api', 'API', 'إيه بي آي', 'واجهة برمجة التطبيقات', 'Call the API endpoint.'),
     CardEntry('request', 'Request', 'ريكويست', 'طلب', 'Send a request to the server.'),
-  ]),
+  ], level: LearningLevel.intermediate),
   Lesson('تشغيل البرامج', [
     CardEntry('run', 'Run', 'رَن', 'تشغيل', 'flutter run'),
     CardEntry('compile', 'Compile', 'كومبايل', 'ترجمة الكود إلى صيغة قابلة للتنفيذ', 'Compile the application.'),
@@ -112,6 +131,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Map<String, ReviewState> reviews = {};
   QuizStats quizStats = const QuizStats();
   DailyLearningProgress dailyProgress = DailyLearningProgress();
+  LearningLevel? selectedLevel;
   int selectedTab = 0;
 
   @override
