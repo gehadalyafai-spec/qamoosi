@@ -1239,12 +1239,33 @@ class _LessonPageState extends State<LessonPage> {
   }
 }
 
-/// One word from every lesson. Subsequent completed attempts rotate the cards.
-List<CardEntry> buildQuizCards(int completedAttempts) => [
-  for (var i = 0; i < lessons.length; i++)
-    if (lessons[i].cards.isNotEmpty)
-      lessons[i].cards[(completedAttempts + i) % lessons[i].cards.length],
-];
+/// Six questions per attempt, fairly rotated across *all* lessons.
+///
+/// With 18 lessons of ten words each, three successive attempts cover all
+/// lessons once. After thirty attempts every one of the 180 cards has appeared
+/// exactly once. Older quiz scores remain valid because each attempt still
+/// contains six questions, even when additional lessons are introduced.
+List<CardEntry> buildQuizCards(int completedAttempts) {
+  const questionsPerQuiz = 6;
+  final available = [
+    for (final lesson in lessons)
+      if (lesson.cards.isNotEmpty) lesson,
+  ];
+  if (available.isEmpty) return const [];
+  final attempts = completedAttempts < 0 ? 0 : completedAttempts;
+  final groups = (available.length + questionsPerQuiz - 1) ~/ questionsPerQuiz;
+  final group = attempts % groups;
+  final rotation = attempts ~/ groups;
+  final start = group * questionsPerQuiz;
+  return [
+    for (var offset = 0;
+        offset < questionsPerQuiz && start + offset < available.length;
+        offset++)
+      available[start + offset].cards[
+        (rotation + offset) % available[start + offset].cards.length
+      ],
+  ];
+}
 
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key});
