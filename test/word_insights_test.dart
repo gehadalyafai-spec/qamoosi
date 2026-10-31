@@ -7,15 +7,15 @@ import 'package:qamoosi/main.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('all 180 vocabulary cards have complete, unique teaching notes', () {
+  test('all 300 vocabulary cards have complete, unique teaching notes', () {
     final cards = [
       for (final lesson in lessons) ...lesson.cards,
     ];
     final expectedIds = cards.map((card) => card.id).toSet();
-    expect(cards.length, 180);
+    expect(cards.length, 300);
     expect(wordInsights.keys.toSet(), expectedIds);
-    expect(lessons.length, 18);
-    expect(lessons.skip(6).length, 12);
+    expect(lessons.length, 30);
+    expect(lessons.skip(6).length, 24);
     for (final card in cards) {
       final insight = wordInsightFor(card.id);
       expect(insight, isNotNull, reason: 'Missing lesson for ${card.id}');
