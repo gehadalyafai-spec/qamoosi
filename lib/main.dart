@@ -471,8 +471,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           for (var i = 0; i < lessons.length; i++)
                             if (selectedLevel == null || lessons[i].level == selectedLevel)
                               Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: Material(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Material(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(24),
                                 child: InkWell(
