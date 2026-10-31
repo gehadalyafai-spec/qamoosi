@@ -6,6 +6,14 @@ import 'package:qamoosi/main.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('vocabulary has six lessons, thirty unique cards', () {
+    expect(lessons.length, 6);
+    final cards = [for (final lesson in lessons) ...lesson.cards];
+    expect(cards.length, 30);
+    expect(cards.map((card) => card.id).toSet().length, cards.length);
+    expect(cards.every((card) => card.word.isNotEmpty && card.translation.isNotEmpty && card.pronunciation.isNotEmpty), isTrue);
+  });
   testWidgets('home lists lessons and opens first flashcard', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
