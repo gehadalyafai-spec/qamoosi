@@ -65,6 +65,28 @@ const lessons = <Lesson>[
     CardEntry('push', 'Push', 'بُش', 'رفع التغييرات', 'git push origin main'),
     CardEntry('pull', 'Pull', 'بُل', 'جلب التحديثات', 'git pull origin main'),
   ]),
+
+  Lesson('الملفات والمجلدات', [
+    CardEntry('file', 'File', 'فايل', 'ملف', 'Open the file.'),
+    CardEntry('folder', 'Folder', 'فولدر', 'مجلد', 'Create a new folder.'),
+    CardEntry('path', 'Path', 'باث', 'مسار الملف', 'lib/main.dart'),
+    CardEntry('save', 'Save', 'سيف', 'حفظ', 'Save your changes.'),
+    CardEntry('open', 'Open', 'أوبِن', 'فتح', 'Open the project.'),
+  ]),
+  Lesson('الويب وقواعد البيانات', [
+    CardEntry('server', 'Server', 'سيرفر', 'خادم', 'The server is running.'),
+    CardEntry('client', 'Client', 'كلاينت', 'عميل', 'The client sends a request.'),
+    CardEntry('database', 'Database', 'داتابيس', 'قاعدة بيانات', 'Store data in the database.'),
+    CardEntry('api', 'API', 'إيه بي آي', 'واجهة برمجة التطبيقات', 'Call the API endpoint.'),
+    CardEntry('request', 'Request', 'ريكويست', 'طلب', 'Send a request to the server.'),
+  ]),
+  Lesson('تشغيل البرامج', [
+    CardEntry('run', 'Run', 'رَن', 'تشغيل', 'flutter run'),
+    CardEntry('compile', 'Compile', 'كومبايل', 'ترجمة الكود إلى صيغة قابلة للتنفيذ', 'Compile the application.'),
+    CardEntry('output', 'Output', 'آوتبُت', 'مخرجات', 'Print the output.'),
+    CardEntry('input', 'Input', 'إنبُت', 'مدخلات', 'Enter your input.'),
+    CardEntry('result', 'Result', 'ريزَلت', 'نتيجة', 'Show the result.'),
+  ]),
 ];
 
 class HomePage extends StatefulWidget {
@@ -340,14 +362,20 @@ class _HomePageState extends State<HomePage> {
                                             const Color(0xFFEAE5FF),
                                             const Color(0xFFFFE7DC),
                                             const Color(0xFFDDEEF3),
-                                          ][i % 3],
+                                            const Color(0xFFE8F2E3),
+                                            const Color(0xFFFFEEDA),
+                                            const Color(0xFFE8EAFB),
+                                          ][i % 6],
                                           borderRadius: BorderRadius.circular(19),
                                         ),
                                         child: Icon([
                                           Icons.code_rounded,
                                           Icons.bug_report_rounded,
                                           Icons.account_tree_rounded,
-                                        ][i % 3], size: 31, color: navy),
+                                          Icons.folder_copy_rounded,
+                                          Icons.cloud_rounded,
+                                          Icons.play_circle_outline_rounded,
+                                        ][i % 6], size: 31, color: navy),
                                       ),
                                       const SizedBox(width: 15),
                                       Expanded(child: Column(
