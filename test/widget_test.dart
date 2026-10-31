@@ -3,9 +3,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qamoosi/main.dart';
+import 'package:qamoosi/features/achievements/achievements_panel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('achievement summary clamps and safely handles empty lessons', () {
+    const empty = LessonAchievement(title: 'فارغ', completed: 0, total: 0);
+    const partial = LessonAchievement(title: 'جزئي', completed: 2, total: 5);
+    const finished = LessonAchievement(title: 'مكتمل', completed: 5, total: 5);
+    expect(empty.progress, 0);
+    expect(empty.isCompleted, isFalse);
+    expect(partial.progress, 0.4);
+    expect(partial.isCompleted, isFalse);
+    expect(finished.progress, 1);
+    expect(finished.isCompleted, isTrue);
+  });
+
+  testWidgets('achievements display saved learning progress', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable'],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إنجازاتي').last);
+    await tester.pumpAndSettle();
+    expect(find.text('أتقنت 1 من 30 بطاقة'), findsOneWidget);
+    expect(find.text('تفاصيل الدروس'), findsOneWidget);
+    expect(find.text('دروس مكتملة'), findsOneWidget);
+    expect(find.text('مستحقة للمراجعة'), findsOneWidget);
+  });
 
   test('lesson progress counts only known cards in that lesson', () {
     final lesson = lessons.first;
