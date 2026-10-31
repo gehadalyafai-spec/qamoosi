@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/quiz_stats.dart';
 
 /// A presentation-only summary, derived from the saved flashcard progress.
 class LessonAchievement {
@@ -23,12 +24,14 @@ class AchievementsPanel extends StatelessWidget {
     required this.lessons,
     required this.dueCards,
     required this.scheduledCards,
+    required this.quizStats,
     required this.onExplore,
   });
 
   final List<LessonAchievement> lessons;
   final int dueCards;
   final int scheduledCards;
+  final QuizStats quizStats;
   final VoidCallback onExplore;
 
   @override
@@ -120,6 +123,43 @@ class AchievementsPanel extends StatelessWidget {
               label: 'الدروس المتاحة',
             )),
           ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          key: const Key('achievements_quiz_stats'),
+          padding: const EdgeInsets.all(19),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEEE6),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.quiz_rounded, color: orange, size: 29),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('نتائج الاختبارات', style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w800, color: navy)),
+                const SizedBox(height: 5),
+                Text(quizStats.attempts == 0
+                    ? 'لم تُجرِ اختبارًا بعد'
+                    : 'آخر نتيجة: ${quizStats.lastScore} من 6  •  الأفضل: ${quizStats.bestScore} من 6',
+                  style: const TextStyle(fontSize: 13, color: muted)),
+                if (quizStats.attempts > 0) ...[
+                  const SizedBox(height: 4),
+                  Text('الاختبارات المكتملة: ${quizStats.attempts}',
+                    style: const TextStyle(fontSize: 12, color: muted)),
+                ],
+              ],
+            )),
+          ]),
         ),
         const SizedBox(height: 29),
         const Text('تفاصيل الدروس', style: TextStyle(
