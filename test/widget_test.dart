@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qamoosi/main.dart';
 import 'package:qamoosi/core/quiz_stats.dart';
+import 'package:qamoosi/core/daily_learning_progress.dart';
 import 'package:qamoosi/features/achievements/achievements_panel.dart';
 
 void main() {
@@ -78,6 +79,54 @@ void main() {
     expect(second.lastScore, 2);
     expect(second.bestScore, 4);
     expect(QuizStats.fromPreferences(prefs).bestScore, 4);
+  });
+
+  testWidgets('daily goal loads and saves a changed target', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final now = DateTime.now();
+    final progress = DailyLearningProgress()
+        .recordSuccess('variable', now)
+        .recordSuccess('function', now);
+    SharedPreferences.setMockInitialValues({
+      DailyLearningProgress.storageKey: jsonEncode(progress.toJson()),
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    expect(find.text('هدفك اليوم'), findsOneWidget);
+    expect(find.text('2 من 5 بطاقات'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('daily_goal_selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3 بطاقات يوميًا').last);
+    await tester.pumpAndSettle();
+    expect(find.text('2 من 3 بطاقات'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    final json = jsonDecode(prefs.getString(DailyLearningProgress.storageKey)!);
+    final restored = DailyLearningProgress.fromJson(json);
+    expect(restored.dailyGoal, 3);
+    expect(restored.countOn(now), 2);
+  });
+
+  testWidgets('achievements show seven-day learning activity', (tester) async {
+    final now = DateTime.now();
+    final progress = DailyLearningProgress()
+        .recordSuccess('variable', now);
+    SharedPreferences.setMockInitialValues({
+      DailyLearningProgress.storageKey: jsonEncode(progress.toJson()),
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إنجازاتي').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('weekly_activity_panel')),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('نشاط آخر 7 أيام'), findsOneWidget);
+    expect(find.text('سلسلة التعلم: 1 يوم'), findsOneWidget);
+    expect(find.text('1 أيام نشاط'), findsOneWidget);
   });
 
   test('lesson progress counts only known cards in that lesson', () {
