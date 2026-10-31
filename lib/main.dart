@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'core/review_scheduler.dart';
 import 'core/quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
+import 'core/favorite_words_repository.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 
@@ -1017,6 +1018,52 @@ class _WordSearchPageState extends State<WordSearchPage> {
     for (final lesson in lessons) ...lesson.cards,
   ];
   String query = '';
+  Set<String> favorites = <String>{};
+  bool favoritesOnly = false;
+  bool savingFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final saved = await FavoriteWordsRepository.load();
+      if (!mounted) return;
+      final knownIds = allCards.map((card) => card.id).toSet();
+      setState(() {
+        favorites = saved.intersection(knownIds);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذّر تحميل الكلمات المفضلة')),
+      );
+    }
+  }
+
+  Future<void> _toggleFavorite(String id) async {
+    if (savingFavorite) return;
+    final previous = favorites;
+    final updated = FavoriteWordsRepository.toggle(previous, id);
+    setState(() {
+      favorites = updated;
+      savingFavorite = true;
+    });
+    try {
+      await FavoriteWordsRepository.save(updated);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => favorites = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذّر حفظ المفضلة، حاول مجددًا')),
+      );
+    } finally {
+      if (mounted) setState(() => savingFavorite = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -1027,13 +1074,14 @@ class _WordSearchPageState extends State<WordSearchPage> {
   @override
   Widget build(BuildContext context) {
     final term = query.trim().toLowerCase();
-    final results = term.isEmpty
-        ? allCards
-        : allCards.where((card) =>
-            card.word.toLowerCase().contains(term) ||
-            card.translation.toLowerCase().contains(term) ||
-            card.pronunciation.toLowerCase().contains(term) ||
-            card.example.toLowerCase().contains(term)).toList();
+    final results = allCards.where((card) {
+      if (favoritesOnly && !favorites.contains(card.id)) return false;
+      if (term.isEmpty) return true;
+      return card.word.toLowerCase().contains(term) ||
+          card.translation.toLowerCase().contains(term) ||
+          card.pronunciation.toLowerCase().contains(term) ||
+          card.example.toLowerCase().contains(term);
+    }).toList();
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -1068,6 +1116,27 @@ class _WordSearchPageState extends State<WordSearchPage> {
               ),
             ),
             Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    key: const Key('all_words_filter'),
+                    label: const Text('جميع الكلمات'),
+                    selected: !favoritesOnly,
+                    onSelected: (_) => setState(() => favoritesOnly = false),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    key: const Key('favorites_filter'),
+                    label: Text('المفضلة (${favorites.length})'),
+                    selected: favoritesOnly,
+                    avatar: const Icon(Icons.bookmark_rounded, size: 18),
+                    onSelected: (_) => setState(() => favoritesOnly = true),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
               child: Align(
                 alignment: Alignment.centerRight,
@@ -1084,7 +1153,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
                         SizedBox(height: 14),
                         Text('لم نعثر على كلمات مطابقة'),
                         SizedBox(height: 6),
-                        Text('جرّب كلمة أخرى أو جزءًا منها',
+                        Text('جرّب كلمة أخرى أو أضف كلمات إلى المفضلة',
                           style: TextStyle(color: Color(0xFF667085))),
                       ],
                     ))
@@ -1105,6 +1174,23 @@ class _WordSearchPageState extends State<WordSearchPage> {
                               style: const TextStyle(fontSize: 19,
                                 fontWeight: FontWeight.w800)),
                             subtitle: Text(card.translation),
+                            trailing: IconButton(
+                              key: Key('favorite_${card.id}'),
+                              tooltip: favorites.contains(card.id)
+                                  ? 'إزالة من المفضلة'
+                                  : 'إضافة إلى المفضلة',
+                              onPressed: savingFavorite
+                                  ? null
+                                  : () => _toggleFavorite(card.id),
+                              icon: Icon(
+                                favorites.contains(card.id)
+                                    ? Icons.bookmark_rounded
+                                    : Icons.bookmark_border_rounded,
+                                color: favorites.contains(card.id)
+                                    ? const Color(0xFFFF653B)
+                                    : const Color(0xFF667085),
+                              ),
+                            ),
                             childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
                             children: [
                               Align(
