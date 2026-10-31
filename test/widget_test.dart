@@ -23,13 +23,13 @@ void main() {
     expect(cards.every((card) => card.word.isNotEmpty && card.translation.isNotEmpty && card.pronunciation.isNotEmpty), isTrue);
   });
   testWidgets('home lists lessons and opens first flashcard', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
     expect(find.text('الإنجليزية التقنية'), findsOneWidget);
     await tester.ensureVisible(find.text('أساسيات البرمجة'));
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -220));
     await tester.pumpAndSettle();
     await tester.tap(find.text('أساسيات البرمجة'));
     await tester.pumpAndSettle();
