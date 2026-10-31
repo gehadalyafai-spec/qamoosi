@@ -6,6 +6,8 @@ import 'core/review_scheduler.dart';
 import 'core/quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
 import 'core/favorite_words_repository.dart';
+import 'data/word_insights.dart';
+import 'features/learning/word_insight_details.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 import 'features/path/learning_path_card.dart';
@@ -113,6 +115,26 @@ const lessons = <Lesson>[
     CardEntry('result', 'Result', 'ريزَلت', 'نتيجة', 'Show the result.'),
   ]),
 ];
+
+/// Matches a vocabulary card across its spelling, translation and teaching notes.
+bool matchesVocabularyQuery(CardEntry card, String query) {
+  final term = query.trim().toLowerCase();
+  if (term.isEmpty) {
+    return true;
+  }
+  final insight = wordInsightFor(card.id);
+  return [
+    card.word,
+    card.translation,
+    card.pronunciation,
+    card.example,
+    if (insight != null) ...[
+      insight.explanation,
+      insight.projectUse,
+      insight.practiceQuestion,
+    ],
+  ].any((text) => text.toLowerCase().contains(term));
+}
 
 double lessonProgress(Lesson lesson, Set<String> knownCards) {
   if (lesson.cards.isEmpty) {
@@ -744,6 +766,7 @@ class _LessonPageState extends State<LessonPage> {
   @override
   Widget build(BuildContext context) {
     final card = widget.lesson.cards[index];
+    final insight = wordInsightFor(card.id);
     const navy = Color(0xFF101D32);
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -842,6 +865,10 @@ class _LessonPageState extends State<LessonPage> {
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(fontSize: 15, color: navy)),
                                   ),
+                                  if (insight != null) ...[
+                                    const SizedBox(height: 18),
+                                    WordInsightDetails(insight: insight),
+                                  ],
                                 ] else
                                   const Text('اضغط على البطاقة لمعرفة المعنى',
                                     textAlign: TextAlign.center,
@@ -1205,18 +1232,11 @@ class _WordSearchPageState extends State<WordSearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final term = query.trim().toLowerCase();
     final results = allCards.where((card) {
       if (favoritesOnly && !favorites.contains(card.id)) {
         return false;
       }
-      if (term.isEmpty) {
-        return true;
-      }
-      return card.word.toLowerCase().contains(term) ||
-          card.translation.toLowerCase().contains(term) ||
-          card.pronunciation.toLowerCase().contains(term) ||
-          card.example.toLowerCase().contains(term);
+      return matchesVocabularyQuery(card, query);
     }).toList();
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -1299,6 +1319,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
                       separatorBuilder: (context, index) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final card = results[index];
+                        final insight = wordInsightFor(card.id);
                         return Material(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
@@ -1340,6 +1361,13 @@ class _WordSearchPageState extends State<WordSearchPage> {
                                 child: SelectableText(card.example,
                                   textDirection: TextDirection.ltr),
                               ),
+                              if (insight != null) ...[
+                                const SizedBox(height: 16),
+                                WordInsightDetails(
+                                  insight: insight,
+                                  compact: true,
+                                ),
+                              ],
                             ],
                           ),
                         );
