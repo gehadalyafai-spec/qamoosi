@@ -19,8 +19,8 @@ class QamoosiApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6554C0),
-        scaffoldBackgroundColor: const Color(0xFFF7F5F1)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6554C0)),
+        scaffoldBackgroundColor: const Color(0xFFF7F5F1),
       ),
       home: const HomePage(),
     );
