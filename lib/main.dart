@@ -89,7 +89,12 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     final raw = prefs.getString('review_states');
-    final decoded = raw == null ? null : jsonDecode(raw);
+    Object? decoded;
+    try {
+      decoded = raw == null ? null : jsonDecode(raw);
+    } on FormatException {
+      decoded = null;
+    }
     final restored = <String, ReviewState>{};
     if (decoded is Map) {
       for (final entry in decoded.entries) {
@@ -123,6 +128,17 @@ class _HomePageState extends State<HomePage> {
     ));
   }
 
+  Future<void> _openReview() async {
+    final now = DateTime.now();
+    final dueCards = [
+      for (final lesson in lessons)
+        for (final card in lesson.cards)
+          if (reviews[card.id]?.isDue(now) ?? false) card,
+    ];
+    if (dueCards.isEmpty) return;
+    await _openLesson(Lesson('مراجعة البطاقات المستحقة', dueCards));
+  }
+
   Future<void> _openLesson(Lesson lesson) async {
     await Navigator.push(
       context,
@@ -136,7 +152,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final total = lessons.fold<int>(0, (sum, lesson) => sum + lesson.cards.length);
-    final due = reviews.values.where((r) => r.isDue(DateTime.now())).length;
+    final allIds = {for (final lesson in lessons) for (final card in lesson.cards) card.id};
+    final due = reviews.entries.where((r) => allIds.contains(r.key) && r.value.isDue(DateTime.now())).length;
     const navy = Color(0xFF101D32);
     const purple = Color(0xFF6857CE);
     return Directionality(
@@ -310,13 +327,13 @@ class _HomePageState extends State<HomePage> {
                             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),
                           Text(selectedTab == 1
-                              ? 'ابدأ درسًا للمراجعة والتعلّم. ستتوفر جلسة مخصصة للبطاقات المستحقة قريبًا.'
+                              ? due == 0 ? 'لا توجد بطاقات مستحقة الآن. تعلّم كلمات جديدة أو عُد لاحقًا.' : 'لديك $due بطاقة جاهزة للمراجعة. استرجع معانيها لتثبيت ما تعلمته.'
                               : 'استمر في دراسة الدروس لترتفع نسبة تقدمك.'),
                           if (selectedTab == 1) ...[
                             const SizedBox(height: 18),
                             FilledButton(
-                              onPressed: () => setState(() => selectedTab = 0),
-                              child: const Text('استعرض الدروس'),
+                              onPressed: due > 0 ? _openReview : () => setState(() => selectedTab = 0),
+                              child: Text(due > 0 ? 'ابدأ المراجعة الآن' : 'استعرض الدروس'),
                             ),
                           ],
                         ]),
