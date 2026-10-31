@@ -17,6 +17,8 @@ import 'features/achievements/achievements_panel.dart';
 import 'features/achievements/learning_overview.dart';
 import 'features/path/learning_path_card.dart';
 import 'features/plan/smart_study_plan_page.dart';
+import 'features/pronunciation/word_speaker.dart';
+import 'features/pronunciation/word_pronunciation_button.dart';
 import 'features/practice/practice_page.dart';
 import 'features/practice/practice_mistakes.dart';
 import 'features/practice/practice_stats.dart';
@@ -1136,8 +1138,14 @@ class _HomePlanChip extends StatelessWidget {
 class LessonPage extends StatefulWidget {
   final Lesson lesson;
   final Future<void> Function(String, ReviewRating) onKnown;
+  final WordSpeaker? speaker;
 
-  const LessonPage({super.key, required this.lesson, required this.onKnown});
+  const LessonPage({
+    super.key,
+    required this.lesson,
+    required this.onKnown,
+    this.speaker,
+  });
 
   @override
   State<LessonPage> createState() => _LessonPageState();
@@ -1147,8 +1155,22 @@ class _LessonPageState extends State<LessonPage> {
   int index = 0;
   bool flipped = false;
   bool saving = false;
+  late final WordSpeaker _speaker;
+
+  @override
+  void initState() {
+    super.initState();
+    _speaker = widget.speaker ?? FlutterWordSpeaker();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_speaker.stop().catchError((Object _) {}));
+    super.dispose();
+  }
 
   void next() {
+    unawaited(_speaker.stop().catchError((Object _) {}));
     if (index < widget.lesson.cards.length - 1) {
       setState(() {
         index++;
@@ -1240,6 +1262,24 @@ class _LessonPageState extends State<LessonPage> {
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(fontSize: 36,
                                     fontWeight: FontWeight.w900, color: navy)),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    WordPronunciationButton(
+                                      key: const Key('lesson_speak_normal'),
+                                      word: card.word,
+                                      speaker: _speaker,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    WordPronunciationButton(
+                                      key: const Key('lesson_speak_slow'),
+                                      word: card.word,
+                                      speaker: _speaker,
+                                      slowly: true,
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 22),
                                 if (flipped) ...[
                                   Container(
