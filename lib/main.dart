@@ -511,6 +511,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           Text(lessons[i].title,
                                             style: const TextStyle(fontSize: 17,
                                               fontWeight: FontWeight.w800, color: navy)),
+                                          const SizedBox(height: 5),
+                                          Text('المستوى: ${lessons[i].level.label}',
+                                            style: const TextStyle(
+                                              fontSize: 12, fontWeight: FontWeight.w700,
+                                              color: Color(0xFF6857CE))),
                                           const SizedBox(height: 7),
                                           Text('${lessons[i].cards.where((c) => known.contains(c.id)).length} / ${lessons[i].cards.length} بطاقات',
                                             style: const TextStyle(color: Color(0xFF667085))),
