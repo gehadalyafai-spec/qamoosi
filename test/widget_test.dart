@@ -126,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('نشاط آخر 7 أيام'), findsOneWidget);
     expect(find.text('سلسلة التعلم: 1 يوم'), findsOneWidget);
-    expect(find.text('1 أيام نشاط'), findsOneWidget);
+    expect(find.text('أيام النشاط: 1'), findsOneWidget);
   });
 
   test('lesson progress counts only known cards in that lesson', () {
