@@ -438,6 +438,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                       ],
                       dueCards: due,
+                      quizStats: quizStats,
                       scheduledCards: reviews.entries.where((entry) =>
                         allIds.contains(entry.key) && !entry.value.isDue(DateTime.now())).length,
                       onExplore: () => setState(() => selectedTab = 0),
