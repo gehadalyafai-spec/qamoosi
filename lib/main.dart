@@ -361,6 +361,7 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(24),
                                 child: InkWell(
+                                  key: Key('lesson_$i'),
                                   borderRadius: BorderRadius.circular(24),
                                   onTap: () => _openLesson(lessons[i]),
                                   child: Padding(
