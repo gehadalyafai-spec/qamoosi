@@ -52,5 +52,15 @@ void main() {
     expect(find.text('البطاقة 1 من 1'), findsOneWidget);
   });
 
+  testWidgets('quiz starts and shows first question', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('اختبر معلوماتك'));
+    await tester.pumpAndSettle();
+    expect(find.text('اختبار الكلمات'), findsOneWidget);
+    expect(find.text('السؤال 1 من 5'), findsOneWidget);
+    expect(find.text('Variable'), findsOneWidget);
+  });
 }
 
