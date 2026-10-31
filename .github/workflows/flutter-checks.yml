@@ -1,0 +1,22 @@
+name: Flutter checks
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+    branches: [main, development]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate platform scaffolding
+        run: flutter create --platforms=android,web .
+      - name: Resolve packages
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
