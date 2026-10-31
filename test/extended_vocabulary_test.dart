@@ -11,12 +11,12 @@ void main() {
 
   test('all new terms keep stable namespaced IDs and rich educational content',
       () {
-    expect(expandedVocabulary.length, 12);
+    expect(expandedVocabulary.length, 24);
     final newCards = [
       for (final lesson in expandedVocabulary) ...lesson.cards,
     ];
-    expect(newCards.length, 120);
-    expect(newCards.map((card) => card.id).toSet().length, 120);
+    expect(newCards.length, 240);
+    expect(newCards.map((card) => card.id).toSet().length, 240);
     expect(newCards.every((card) => card.id.startsWith('extra_')), isTrue);
 
     final original = [
@@ -47,25 +47,35 @@ void main() {
 
   test('expanded lessons are grouped correctly without modifying old lessons',
       () {
-    expect(lessons.length, 18);
+    expect(lessons.length, 30);
     expect(lessons.every((lesson) => lesson.cards.length == 10), isTrue);
     expect(lessons[0].title, 'أساسيات البرمجة');
     expect(lessons[5].title, 'تشغيل البرامج');
     expect(lessons[6].title, 'الحاسوب ومكوناته');
     expect(lessons[17].title, 'الذكاء الاصطناعي وتحليل البيانات');
+    expect(lessons[18].title, 'الهاتف والتطبيقات اليومية');
+    expect(lessons[29].title, 'نماذج اللغة والذكاء الاصطناعي');
 
     expect(lessons[6].level, LearningLevel.beginner);
     expect(lessons[9].level, LearningLevel.beginner);
     expect(lessons[10].level, LearningLevel.intermediate);
     expect(lessons[17].level, LearningLevel.intermediate);
+    expect(lessons[18].level, LearningLevel.beginner);
+    expect(lessons[21].level, LearningLevel.beginner);
+    expect(lessons[22].level, LearningLevel.intermediate);
+    expect(lessons[29].level, LearningLevel.intermediate);
     final ids = {
       for (final lesson in lessons)
         for (final card in lesson.cards) card.id,
     };
-    expect(ids.length, 180);
+    expect(ids.length, 300);
     expect(ids.containsAll([
       'variable', 'extra_cpu', 'extra_flutter', 'extra_sql_query',
       'extra_encryption', 'extra_prompt', 'extra_inference',
+      'extra_smartphone', 'extra_wifi', 'extra_pdf', 'extra_priority',
+      'extra_apk', 'extra_software_architecture', 'extra_sku',
+      'extra_payment_gateway', 'extra_tracking_number',
+      'extra_webhook', 'extra_conversion_rate', 'extra_llm',
     ]), isTrue);
   });
 
@@ -85,6 +95,12 @@ void main() {
     expect(matchesVocabularyQuery(flutter, 'التحديث السريع'), isTrue);
     expect(matchesVocabularyQuery(flutter, 'تعديل المسافات'), isTrue);
     expect(matchesVocabularyQuery(ai, 'نص لا يطابق هذا المصطلح'), isFalse);
+    final webhook = cards.singleWhere((card) => card.id == 'extra_webhook');
+    final checkout = cards.singleWhere((card) => card.id == 'extra_checkout');
+    final rag = cards.singleWhere((card) => card.id == 'extra_rag');
+    expect(matchesVocabularyQuery(webhook, 'إشعار حدث'), isTrue);
+    expect(matchesVocabularyQuery(checkout, 'إتمام الشراء'), isTrue);
+    expect(matchesVocabularyQuery(rag, 'الاسترجاع'), isTrue);
   });
 
   testWidgets('expanded flashcard can be flipped and shows its own teaching',
@@ -137,7 +153,7 @@ void main() {
     });
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
-    expect(find.text('3 من 180 بطاقة'), findsOneWidget);
+    expect(find.text('3 من 300 بطاقة'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('known_cards'),
       ['variable', 'file', 'extra_cpu']);
