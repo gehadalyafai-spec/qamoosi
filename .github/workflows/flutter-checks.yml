@@ -16,6 +16,14 @@ jobs:
         run: flutter create --platforms=android,web .
       - name: Resolve packages
         run: flutter pub get
+      - name: Generate Android and Web launcher icons
+        run: dart run flutter_launcher_icons
+      - name: Verify launcher icon outputs
+        run: |
+          test -s android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          test -s android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          test -s web/icons/Icon-192.png
+          test -s web/icons/Icon-512.png
       - name: Analyze
         run: flutter analyze
       - name: Test
