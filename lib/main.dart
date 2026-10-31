@@ -9,6 +9,7 @@ import 'core/quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
 import 'core/favorite_words_repository.dart';
 import 'data/word_insights.dart';
+import 'data/vocabulary_expansion.dart';
 import 'features/learning/word_insight_details.dart';
 import 'features/quiz/quiz_mistakes_review.dart';
 import 'features/daily/daily_learning_widgets.dart';
@@ -78,7 +79,7 @@ List<Lesson> filterLessonsByLevel(
     if (level == null || lesson.level == level) lesson,
 ];
 
-const lessons = <Lesson>[
+final lessons = <Lesson>[
   Lesson('أساسيات البرمجة', [
     CardEntry('variable', 'Variable', 'ڤيريَبُل', 'متغير', 'int count = 1;'),
     CardEntry('constant', 'Constant', 'كونستَنت', 'ثابت', 'const appName = "قاموسي";'),
@@ -152,6 +153,25 @@ const lessons = <Lesson>[
     CardEntry("program", "Program", "بروغرام", "برنامج", "void main() { print('Hi'); }"),
     CardEntry("process", "Process", "بروسِس", "عملية قيد التشغيل", "The build process finished."),
   ]),
+  // Additional lessons are appended rather than modifying the original sixty
+  // cards, so previously saved mastery, favorites and review dates survive.
+  for (final extra in expandedVocabulary)
+    Lesson(
+      extra.title,
+      [
+        for (final card in extra.cards)
+          CardEntry(
+            card.id,
+            card.word,
+            card.pronunciation,
+            card.translation,
+            card.example,
+          ),
+      ],
+      level: extra.intermediate
+          ? LearningLevel.intermediate
+          : LearningLevel.beginner,
+    ),
 ];
 
 /// Matches a vocabulary card across its spelling, translation and teaching notes.
