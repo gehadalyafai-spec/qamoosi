@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:ui';
 import 'core/review_scheduler.dart';
+import 'core/quiz_stats.dart';
 import 'features/achievements/achievements_panel.dart';
 
 void main() {
@@ -106,6 +107,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Set<String> known = {};
   Map<String, ReviewState> reviews = {};
+  QuizStats quizStats = const QuizStats();
   int selectedTab = 0;
 
   @override
@@ -134,6 +136,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       known = prefs.getStringList('known_cards')?.toSet() ?? {};
       reviews = restored;
+      quizStats = QuizStats.fromPreferences(prefs);
     });
   }
 
@@ -169,6 +172,7 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(builder: (_) => const QuizPage()),
     );
+    if (mounted) await _load();
   }
 
   Future<void> _openReview() async {
@@ -341,7 +345,7 @@ class _HomePageState extends State<HomePage> {
                                     children: [
                                       Text('اختبر معلوماتك', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
                                       SizedBox(height: 5),
-                                      Text('اختبار سريع من 5 أسئلة', style: TextStyle(color: Color(0xFFDDE9F4))),
+                                      Text('اختبار من 6 أسئلة متنوعة', style: TextStyle(color: Color(0xFFDDE9F4))),
                                     ],
                                   )),
                                   Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
@@ -708,6 +712,13 @@ class _LessonPageState extends State<LessonPage> {
   }
 }
 
+/// One word from every lesson. Subsequent completed attempts rotate the cards.
+List<CardEntry> buildQuizCards(int completedAttempts) => [
+  for (var i = 0; i < lessons.length; i++)
+    if (lessons[i].cards.isNotEmpty)
+      lessons[i].cards[(completedAttempts + i) % lessons[i].cards.length],
+];
+
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key});
 
@@ -716,92 +727,210 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  static final List<CardEntry> _cards = [
+  static final List<CardEntry> _allCards = [
     for (final lesson in lessons) ...lesson.cards,
   ];
+
+  List<CardEntry> _cards = [];
+  QuizStats _stats = const QuizStats();
   int index = 0;
   int correct = 0;
   int? selected;
+  bool _ready = false;
+  bool _saving = false;
+  bool _finished = false;
+  String? _saveError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuiz();
+  }
+
+  Future<void> _loadQuiz() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final stats = QuizStats.fromPreferences(prefs);
+    setState(() {
+      _stats = stats;
+      _cards = buildQuizCards(stats.attempts);
+      index = 0;
+      correct = 0;
+      selected = null;
+      _finished = false;
+      _saving = false;
+      _saveError = null;
+      _ready = true;
+    });
+  }
 
   List<String> get options {
-    final answer = _cards[index].translation;
-    final distractors = _cards.where((c) => c.id != _cards[index].id)
-        .map((c) => c.translation).where((value) => value != answer).toList();
-    final choices = <String>[answer];
-    for (var offset = 0; offset < distractors.length && choices.length < 4; offset++) {
-      final candidate = distractors[(index * 3 + offset) % distractors.length];
-      if (!choices.contains(candidate)) choices.add(candidate);
+    final current = _cards[index];
+    final others = _allCards
+        .where((card) => card.id != current.id && card.translation != current.translation)
+        .map((card) => card.translation)
+        .toSet()
+        .toList();
+    final choices = <String>[current.translation];
+    for (var offset = 0; choices.length < 4 && offset < others.length; offset++) {
+      choices.add(others[(index * 5 + offset) % others.length]);
     }
-    choices.shuffleWithSeed(index + 42);
+    choices.shuffleWithSeed(index + 42 + _stats.attempts);
     return choices;
   }
 
   void answer(int choice) {
-    if (selected != null) return;
+    if (selected != null || _saving) return;
+    final choices = options;
+    if (choice < 0 || choice >= choices.length) return;
     setState(() {
       selected = choice;
-      if (options[choice] == _cards[index].translation) correct++;
+      if (choices[choice] == _cards[index].translation) correct++;
     });
   }
 
-  void next() {
-    if (index == 4) {
-      setState(() => index++);
-    } else {
+  Future<void> next() async {
+    if (selected == null || _saving) return;
+    if (index + 1 < _cards.length) {
       setState(() {
         index++;
         selected = null;
+        _saveError = null;
       });
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _saveError = null;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final updated = await QuizStats.record(prefs, correct);
+      if (!mounted) return;
+      setState(() {
+        _stats = updated;
+        _finished = true;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saveError = 'تعذّر حفظ النتيجة. حاول مجددًا.');
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final finished = index >= 5;
-    final choices = finished ? <String>[] : options;
+    const navy = Color(0xFF101D32);
+    const orange = Color(0xFFFF653B);
+    final choices = _ready && !_finished && _cards.isNotEmpty ? options : <String>[];
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(title: const Text('اختبار الكلمات')),
-        body: SafeArea(child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: finished
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.emoji_events_rounded, size: 76, color: Color(0xFFFF653B)),
-                  const SizedBox(height: 18),
-                  const Text('أحسنت! انتهى الاختبار', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  Text('نتيجتك: $correct من 5', style: const TextStyle(fontSize: 21)),
-                  const SizedBox(height: 26),
-                  FilledButton(onPressed: () => Navigator.pop(context), child: const Text('العودة للرئيسية')),
-                ]))
-              : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Text('السؤال ${index + 1} من 5', style: const TextStyle(fontSize: 16, color: Color(0xFF667085))),
-                  const SizedBox(height: 12),
-                  LinearProgressIndicator(value: (index + 1) / 5, minHeight: 7, borderRadius: BorderRadius.circular(12)),
-                  const SizedBox(height: 42),
-                  const Text('ما معنى الكلمة التالية؟', style: TextStyle(fontSize: 19)),
-                  const SizedBox(height: 16),
-                  Text(_cards[index].word, textDirection: TextDirection.ltr, textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Color(0xFF101D32))),
-                  const SizedBox(height: 36),
-                  for (var i = 0; i < choices.length; i++) ...[
-                    OutlinedButton(
-                      onPressed: selected == null ? () => answer(i) : null,
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.all(18),
-                        backgroundColor: selected != null && choices[i] == _cards[index].translation
-                            ? const Color(0xFFE2F5E8)
-                            : selected == i ? const Color(0xFFFFE4DE) : Colors.white),
-                      child: Text(choices[i], style: const TextStyle(fontSize: 16)),
+        body: SafeArea(
+          child: !_ready
+              ? const Center(child: CircularProgressIndicator())
+              : _finished
+                  ? Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.emoji_events_rounded, size: 76, color: orange),
+                          const SizedBox(height: 18),
+                          const Text('أحسنت! انتهى الاختبار',
+                            style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 12),
+                          Text('نتيجتك: $correct من ${_cards.length}',
+                            style: const TextStyle(fontSize: 21)),
+                          const SizedBox(height: 10),
+                          Text('أفضل نتيجة: ${_stats.bestScore} من ${_cards.length}',
+                            style: const TextStyle(color: Color(0xFF667085))),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: () {
+                              setState(() => _ready = false);
+                              _loadQuiz();
+                            },
+                            icon: const Icon(Icons.replay_rounded),
+                            label: const Text('اختبار جديد'),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('العودة للرئيسية'),
+                          ),
+                        ]),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Text('السؤال ${index + 1} من ${_cards.length}',
+                          style: const TextStyle(fontSize: 16, color: Color(0xFF667085))),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: (index + 1) / _cards.length,
+                          minHeight: 7,
+                          borderRadius: BorderRadius.circular(12),
+                          color: orange,
+                        ),
+                        const SizedBox(height: 15),
+                        Expanded(
+                          child: ListView(
+                            children: [
+                              const SizedBox(height: 18),
+                              const Text('ما معنى الكلمة التالية؟',
+                                style: TextStyle(fontSize: 19, color: navy)),
+                              const SizedBox(height: 19),
+                              Text(_cards[index].word,
+                                textDirection: TextDirection.ltr,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 36,
+                                  fontWeight: FontWeight.w800, color: navy)),
+                              const SizedBox(height: 29),
+                              for (var i = 0; i < choices.length; i++) ...[
+                                OutlinedButton(
+                                  key: Key('quiz_choice_$i'),
+                                  onPressed: selected == null ? () => answer(i) : null,
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.all(18),
+                                    backgroundColor: selected != null &&
+                                            choices[i] == _cards[index].translation
+                                        ? const Color(0xFFE2F5E8)
+                                        : selected == i
+                                            ? const Color(0xFFFFE4DE)
+                                            : Colors.white,
+                                  ),
+                                  child: Text(choices[i],
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 16)),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (_saveError != null) ...[
+                          Text(_saveError!, style: const TextStyle(color: Colors.red)),
+                          const SizedBox(height: 9),
+                        ],
+                        if (selected != null)
+                          FilledButton(
+                            key: const Key('quiz_next'),
+                            onPressed: _saving ? null : next,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: orange,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: Text(_saving ? 'جارٍ حفظ النتيجة...'
+                              : index + 1 == _cards.length ? 'عرض النتيجة' : 'السؤال التالي'),
+                          ),
+                      ]),
                     ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (selected != null) ...[
-                    const Spacer(),
-                    FilledButton(onPressed: next, child: Text(index == 4 ? 'عرض النتيجة' : 'السؤال التالي')),
-                  ],
-                ]),
-        )),
+        ),
       ),
     );
   }
