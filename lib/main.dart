@@ -8,6 +8,7 @@ import 'core/daily_learning_progress.dart';
 import 'core/favorite_words_repository.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
+import 'features/path/learning_path_card.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -114,9 +115,43 @@ const lessons = <Lesson>[
 ];
 
 double lessonProgress(Lesson lesson, Set<String> knownCards) {
-  if (lesson.cards.isEmpty) return 0;
-  final completed = lesson.cards.where((card) => knownCards.contains(card.id)).length;
+  if (lesson.cards.isEmpty) {
+    return 0;
+  }
+  final completed = lesson.cards.where(
+    (card) => knownCards.contains(card.id),
+  ).length;
   return completed / lesson.cards.length;
+}
+
+/// Work through the beginner lessons first, then intermediate lessons.
+/// The original order within each level remains unchanged.
+Lesson? recommendNextLesson(
+  Iterable<Lesson> catalog,
+  Set<String> knownCards,
+) {
+  for (final level in LearningLevel.values) {
+    for (final lesson in catalog) {
+      if (lesson.level == level &&
+          lesson.cards.isNotEmpty &&
+          lesson.cards.any((card) => !knownCards.contains(card.id))) {
+        return lesson;
+      }
+    }
+  }
+  return null;
+}
+
+/// Resume at the first not-yet-mastered card, without changing its original ID.
+Lesson lessonRemainingToLearn(Lesson lesson, Set<String> knownCards) {
+  return Lesson(
+    lesson.title,
+    [
+      for (final card in lesson.cards)
+        if (!knownCards.contains(card.id)) card,
+    ],
+    level: lesson.level,
+  );
 }
 
 class HomePage extends StatefulWidget {
@@ -267,6 +302,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final total = lessons.fold<int>(0, (sum, lesson) => sum + lesson.cards.length);
     final allIds = {for (final lesson in lessons) for (final card in lesson.cards) card.id};
     final due = reviews.entries.where((r) => allIds.contains(r.key) && r.value.isDue(DateTime.now())).length;
+    final recommendedLesson = recommendNextLesson(lessons, known);
     const navy = Color(0xFF101D32);
     const purple = Color(0xFF6857CE);
     return Directionality(
@@ -378,6 +414,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             progress: dailyProgress,
                             now: DateTime.now(),
                             onGoalChanged: _changeDailyGoal,
+                          ),
+                          const SizedBox(height: 16),
+                          LearningPathCard(
+                            lessonTitle: recommendedLesson?.title,
+                            levelLabel: recommendedLesson?.level.label,
+                            learned: recommendedLesson == null
+                                ? 0
+                                : recommendedLesson.cards.where(
+                                    (card) => known.contains(card.id),
+                                  ).length,
+                            total: recommendedLesson?.cards.length ?? 0,
+                            onStart: recommendedLesson == null
+                                ? null
+                                : () => _openLesson(
+                                    lessonRemainingToLearn(recommendedLesson, known),
+                                  ),
                           ),
                           const SizedBox(height: 16),
                           Material(
