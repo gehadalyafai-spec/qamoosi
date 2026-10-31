@@ -1307,8 +1307,8 @@ class _LessonPageState extends State<LessonPage> {
 
 /// Six questions per attempt, fairly rotated across *all* lessons.
 ///
-/// With 18 lessons of ten words each, three successive attempts cover all
-/// lessons once. After thirty attempts every one of the 180 cards has appeared
+/// With 30 lessons of ten words each, five successive attempts cover all
+/// lessons once. After fifty attempts every one of the 300 cards has appeared
 /// exactly once. Older quiz scores remain valid because each attempt still
 /// contains six questions, even when additional lessons are introduced.
 List<CardEntry> buildQuizCards(int completedAttempts) {
