@@ -3,11 +3,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'practice_questions.dart';
 import 'practice_stats.dart';
+import 'practice_mistakes.dart';
 
 /// A separate offline assessment of practical understanding rather than
 /// translation recall. An attempt is recorded only after the final answer.
 class PracticePage extends StatefulWidget {
-  const PracticePage({super.key});
+  const PracticePage({super.key, this.reviewMistakes = false});
+
+  final bool reviewMistakes;
 
   @override
   State<PracticePage> createState() => _PracticePageState();
@@ -17,11 +20,13 @@ class _PracticePageState extends State<PracticePage> {
   final ScrollController _scrollController = ScrollController(keepScrollOffset: false);
   List<PracticeQuestion> _questions = const [];
   PracticeStats _stats = const PracticeStats();
+  PracticeMistakes _mistakes = PracticeMistakes.empty;
   int _index = 0;
   int _correct = 0;
   int? _selected;
   bool _loading = true;
   bool _saving = false;
+  bool _answerCommitted = false;
   bool _finished = false;
   String? _loadError;
   String? _saveError;
@@ -46,16 +51,22 @@ class _PracticePageState extends State<PracticePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stats = PracticeStats.fromPreferences(prefs);
+      final mistakes = PracticeMistakes.fromPreferences(prefs);
+      final questions = widget.reviewMistakes
+          ? mistakes.prioritized()
+          : buildPracticeSession(stats.attempts);
       if (!mounted) {
         return;
       }
       setState(() {
         _stats = stats;
-        _questions = buildPracticeSession(stats.attempts);
+        _mistakes = mistakes;
+        _questions = questions;
         _index = 0;
         _correct = 0;
         _selected = null;
         _finished = false;
+        _answerCommitted = false;
         _saving = false;
         _saveError = null;
         _loading = false;
