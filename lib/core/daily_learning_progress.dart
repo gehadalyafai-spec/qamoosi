@@ -2,9 +2,10 @@
 /// its learner marks it as known, whether from a lesson or a review session.
 class DailyLearningProgress {
   DailyLearningProgress({
-    this.dailyGoal = 5,
+    int dailyGoal = 5,
     Map<String, Set<String>>? activity,
-  }) : activity = {
+  }) : dailyGoal = allowedGoals.contains(dailyGoal) ? dailyGoal : 5,
+       activity = {
           for (final entry in (activity ?? <String, Set<String>>{}).entries)
             entry.key: Set<String>.from(entry.value),
         };
@@ -52,9 +53,13 @@ class DailyLearningProgress {
 
   DailyLearningProgress recordSuccess(String cardId, DateTime date) {
     final cleaned = cardId.trim();
-    if (cleaned.isEmpty) return this;
+    if (cleaned.isEmpty) {
+      return this;
+    }
     final key = dateKey(date);
-    if (activity[key]?.contains(cleaned) ?? false) return this;
+    if (activity[key]?.contains(cleaned) ?? false) {
+      return this;
+    }
     final updated = {
       for (final entry in activity.entries)
         entry.key: Set<String>.from(entry.value),
@@ -64,7 +69,9 @@ class DailyLearningProgress {
   }
 
   DailyLearningProgress withGoal(int goal) {
-    if (!allowedGoals.contains(goal)) return this;
+    if (!allowedGoals.contains(goal)) {
+      return this;
+    }
     return DailyLearningProgress(dailyGoal: goal, activity: activity);
   }
 
@@ -77,7 +84,9 @@ class DailyLearningProgress {
       };
 
   static DailyLearningProgress fromJson(Object? value) {
-    if (value is! Map) return DailyLearningProgress();
+    if (value is! Map) {
+      return DailyLearningProgress();
+    }
     final rawGoal = value['dailyGoal'];
     final goal = rawGoal is int && allowedGoals.contains(rawGoal)
         ? rawGoal
@@ -98,7 +107,9 @@ class DailyLearningProgress {
         final validIds = cards.whereType<String>()
             .map((id) => id.trim())
             .where((id) => id.isNotEmpty).toSet();
-        if (validIds.isNotEmpty) days[key] = validIds;
+        if (validIds.isNotEmpty) {
+          days[key] = validIds;
+        }
       }
     }
     return DailyLearningProgress(dailyGoal: goal, activity: days);
