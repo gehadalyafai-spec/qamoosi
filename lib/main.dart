@@ -444,6 +444,7 @@ class LessonPage extends StatefulWidget {
 class _LessonPageState extends State<LessonPage> {
   int index = 0;
   bool flipped = false;
+  bool saving = false;
 
   void next() {
     if (index < widget.lesson.cards.length - 1) {
@@ -456,80 +457,162 @@ class _LessonPageState extends State<LessonPage> {
     }
   }
 
+  Future<void> rate(ReviewRating rating) async {
+    if (saving) return;
+    setState(() => saving = true);
+    try {
+      await widget.onKnown(widget.lesson.cards[index].id, rating);
+      if (mounted) next();
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final card = widget.lesson.cards[index];
+    const navy = Color(0xFF101D32);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.lesson.title)),
-        body: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Text('البطاقة ${index + 1} من ${widget.lesson.cards.length}'),
-              const SizedBox(height: 20),
-              Expanded(
-                child: InkWell(
-                  key: const Key('flip_card'),
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => setState(() => flipped = !flipped),
-                  child: Card(
-                    child: SizedBox.expand(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF7F5F1),
+          title: Text(widget.lesson.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  Text('البطاقة ${index + 1} من ${widget.lesson.cards.length}',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: navy)),
+                  const Spacer(),
+                  Text('${((index + 1) * 100 / widget.lesson.cards.length).round()}%',
+                    style: const TextStyle(color: Color(0xFF667085))),
+                ]),
+                const SizedBox(height: 12),
+                LinearProgressIndicator(
+                  value: (index + 1) / widget.lesson.cards.length,
+                  minHeight: 7,
+                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFFFF653B),
+                  backgroundColor: const Color(0xFFE4E5EB),
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    elevation: 2,
+                    shadowColor: const Color(0x150B1A33),
+                    child: InkWell(
+                      key: const Key('flip_card'),
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () => setState(() => flipped = !flipped),
                       child: Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(26),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(card.word, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 24),
-                            if (flipped) ...[
-                              Text(card.pronunciation, style: const TextStyle(fontSize: 20)),
-                              const SizedBox(height: 12),
-                              Text(card.translation, style: const TextStyle(fontSize: 26)),
-                              const SizedBox(height: 24),
-                              Text(card.example, textDirection: TextDirection.ltr, textAlign: TextAlign.center),
-                            ] else
-                              const Text('اضغط على البطاقة لمعرفة المعنى'),
+                            Row(children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEAE5FF),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(flipped ? 'المعنى والمثال' : 'الكلمة الإنجليزية',
+                                  style: const TextStyle(color: Color(0xFF6554C0),
+                                    fontWeight: FontWeight.w700)),
+                              ),
+                              const Spacer(),
+                              const Icon(Icons.touch_app_rounded, color: Color(0xFF8992A2)),
+                            ]),
+                            Expanded(child: Center(child: SingleChildScrollView(
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                Text(card.word,
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 36,
+                                    fontWeight: FontWeight.w900, color: navy)),
+                                const SizedBox(height: 22),
+                                if (flipped) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFEEE6),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: Text(card.pronunciation,
+                                      style: const TextStyle(fontSize: 21, color: Color(0xFFB94824))),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  Text(card.translation, textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 27,
+                                      fontWeight: FontWeight.w800, color: navy)),
+                                  const SizedBox(height: 28),
+                                  const Text('مثال عملي',
+                                    style: TextStyle(color: Color(0xFF667085),
+                                      fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 9),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(17),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3F5F9),
+                                      borderRadius: BorderRadius.circular(17),
+                                    ),
+                                    child: SelectableText(card.example,
+                                      textDirection: TextDirection.ltr,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 15, color: navy)),
+                                  ),
+                                ] else
+                                  const Text('اضغط على البطاقة لمعرفة المعنى',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 16, color: Color(0xFF667085))),
+                              ]),
+                            ))),
+                            Text(flipped ? 'اضغط لإخفاء المعنى' : 'المس البطاقة لقلبها',
+                              style: const TextStyle(color: Color(0xFF8992A2))),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        await widget.onKnown(card.id, ReviewRating.again);
-                        if (mounted) next();
-                      },
-                      child: const Text('أحتاج مراجعة'),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(child: OutlinedButton.icon(
+                    onPressed: saving ? null : () => rate(ReviewRating.again),
+                    icon: const Icon(Icons.replay_rounded),
+                    label: const Text('أحتاج مراجعة'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      foregroundColor: navy,
                     ),
-                  ),
+                  )),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () async {
-                        await widget.onKnown(card.id, ReviewRating.good);
-                        if (mounted) next();
-                      },
-                      child: const Text('عرفتها'),
+                  Expanded(child: FilledButton.icon(
+                    onPressed: saving ? null : () => rate(ReviewRating.good),
+                    icon: const Icon(Icons.check_circle_outline_rounded),
+                    label: const Text('عرفتها'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFFFF653B),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  )),
+                ]),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
 
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key});
