@@ -17,4 +17,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('متغير'), findsOneWidget);
   });
+
+  testWidgets('bottom navigation opens progress and review', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إنجازاتي').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('أتقنت'), findsOneWidget);
+    await tester.tap(find.text('المراجعة').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('بطاقات مستحقة'), findsOneWidget);
+  });
 }
+
