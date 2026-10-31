@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/quiz_stats.dart';
+import '../../core/daily_learning_progress.dart';
+import '../daily/daily_learning_widgets.dart';
 
 /// A presentation-only summary, derived from the saved flashcard progress.
 class LessonAchievement {
@@ -25,6 +27,7 @@ class AchievementsPanel extends StatelessWidget {
     required this.dueCards,
     required this.scheduledCards,
     required this.quizStats,
+    required this.dailyProgress,
     required this.onExplore,
   });
 
@@ -32,6 +35,7 @@ class AchievementsPanel extends StatelessWidget {
   final int dueCards;
   final int scheduledCards;
   final QuizStats quizStats;
+  final DailyLearningProgress dailyProgress;
   final VoidCallback onExplore;
 
   @override
@@ -160,6 +164,11 @@ class AchievementsPanel extends StatelessWidget {
               ],
             )),
           ]),
+        ),
+        const SizedBox(height: 18),
+        WeeklyLearningPanel(
+          progress: dailyProgress,
+          now: DateTime.now(),
         ),
         const SizedBox(height: 29),
         const Text('تفاصيل الدروس', style: TextStyle(
