@@ -1072,7 +1072,9 @@ class _WordSearchPageState extends State<WordSearchPage> {
         const SnackBar(content: Text('تعذّر حفظ المفضلة، حاول مجددًا')),
       );
     } finally {
-      if (mounted) setState(() => savingFavorite = false);
+      if (mounted) {
+        setState(() => savingFavorite = false);
+      }
     }
   }
 
