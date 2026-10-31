@@ -280,7 +280,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final card = tester.widget<LearningPathCard>(pathCard);
+    // The key belongs to the Container rendered *inside* LearningPathCard,
+    // so inspect its typed ancestor rather than casting the Container itself.
+    final pathWidget = find.ancestor(
+      of: pathCard,
+      matching: find.byType(LearningPathCard),
+    );
+    expect(pathWidget, findsOneWidget);
+    final card = tester.widget<LearningPathCard>(pathWidget);
     expect(card.lessonTitle, 'الملفات والمجلدات',
       reason: 'The home card should reflect the newly completed lesson.');
   });
