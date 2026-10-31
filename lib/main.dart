@@ -12,6 +12,7 @@ import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 import 'features/path/learning_path_card.dart';
 import 'features/practice/practice_page.dart';
+import 'features/practice/practice_mistakes.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -219,6 +220,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Map<String, ReviewState> reviews = {};
   QuizStats quizStats = const QuizStats();
   DailyLearningProgress dailyProgress = DailyLearningProgress();
+  int pendingPracticeMistakes = 0;
   LearningLevel? selectedLevel;
   int selectedTab = 0;
 
@@ -263,6 +265,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       known = prefs.getStringList('known_cards')?.toSet() ?? {};
       reviews = restored;
       quizStats = QuizStats.fromPreferences(prefs);
+      pendingPracticeMistakes =
+          PracticeMistakes.fromPreferences(prefs).pendingCount;
       final dailyJson = prefs.getString(DailyLearningProgress.storageKey);
       Object? decodedDaily;
       try {
@@ -334,6 +338,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       context,
       MaterialPageRoute(builder: (_) => const PracticePage()),
     );
+    if (mounted) {
+      await _load();
+    }
+  }
+
+  Future<void> _openMistakeReview() async {
+    if (pendingPracticeMistakes == 0) {
+      return;
+    }
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PracticePage(reviewMistakes: true),
+      ),
+    );
+    if (mounted) {
+      await _load();
+    }
   }
 
   Future<void> _openReview() async {
@@ -567,6 +589,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                   )),
                                   Icon(Icons.arrow_back_ios_new_rounded,
                                     color: Color(0xFF3565A8), size: 17),
+                                ]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Material(
+                            color: const Color(0xFFF4EBFF),
+                            borderRadius: BorderRadius.circular(22),
+                            child: InkWell(
+                              key: const Key('open_mistake_review'),
+                              borderRadius: BorderRadius.circular(22),
+                              onTap: pendingPracticeMistakes > 0
+                                  ? _openMistakeReview
+                                  : null,
+                              child: Padding(
+                                padding: const EdgeInsets.all(19),
+                                child: Row(children: [
+                                  const Icon(Icons.rule_rounded,
+                                    color: Color(0xFF6857CE), size: 32),
+                                  const SizedBox(width: 15),
+                                  Expanded(child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('مراجعة أخطائي',
+                                        style: TextStyle(
+                                          color: Color(0xFF101D32),
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800)),
+                                      const SizedBox(height: 5),
+                                      Text(pendingPracticeMistakes > 0
+                                          ? '$pendingPracticeMistakes مواقف تحتاج تدريبًا'
+                                          : 'لا توجد أخطاء معلّقة حاليًا',
+                                        key: const Key('pending_mistakes_count'),
+                                        style: const TextStyle(
+                                          color: Color(0xFF65547F),
+                                          fontSize: 13)),
+                                    ],
+                                  )),
+                                  Icon(
+                                    pendingPracticeMistakes > 0
+                                        ? Icons.arrow_back_ios_new_rounded
+                                        : Icons.check_circle_outline_rounded,
+                                    color: const Color(0xFF6857CE),
+                                    size: 19,
+                                  ),
                                 ]),
                               ),
                             ),
