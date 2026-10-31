@@ -9,6 +9,7 @@ import 'core/daily_learning_progress.dart';
 import 'core/favorite_words_repository.dart';
 import 'data/word_insights.dart';
 import 'features/learning/word_insight_details.dart';
+import 'features/quiz/quiz_mistakes_review.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 import 'features/path/learning_path_card.dart';
@@ -1070,6 +1071,8 @@ class QuizPage extends StatefulWidget {
 class _QuizPageState extends State<QuizPage> {
   static const Duration correctAnswerDelay = Duration(milliseconds: 700);
   Timer? _autoAdvanceTimer;
+  final ScrollController _choicesScrollController = ScrollController(keepScrollOffset: false);
+  final List<QuizMistake> _mistakes = [];
 
   static final List<CardEntry> _allCards = [
     for (final lesson in lessons) ...lesson.cards,
@@ -1094,6 +1097,7 @@ class _QuizPageState extends State<QuizPage> {
   @override
   void dispose() {
     _autoAdvanceTimer?.cancel();
+    _choicesScrollController.dispose();
     super.dispose();
   }
 
@@ -1106,6 +1110,7 @@ class _QuizPageState extends State<QuizPage> {
     setState(() {
       _stats = stats;
       _cards = buildQuizCards(stats.attempts);
+      _mistakes.clear();
       index = 0;
       correct = 0;
       selected = null;
@@ -1139,8 +1144,34 @@ class _QuizPageState extends State<QuizPage> {
     final answeredIndex = index;
     setState(() {
       selected = choice;
-      if (isCorrect) correct++;
+      if (isCorrect) {
+        correct++;
+      } else {
+        final card = _cards[index];
+        final insight = wordInsightFor(card.id);
+        _mistakes.add(QuizMistake(
+          word: card.word,
+          pronunciation: card.pronunciation,
+          selectedTranslation: choices[choice],
+          correctTranslation: card.translation,
+          example: card.example,
+          explanation: insight?.explanation ?? card.translation,
+          projectUse: insight?.projectUse ?? '',
+        ));
+      }
     });
+
+    if (!isCorrect) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _choicesScrollController.hasClients) {
+          _choicesScrollController.animateTo(
+            _choicesScrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
 
     // Show the correct answer briefly, then continue without another tap.
     // A wrong answer stays on the screen until the learner continues.
@@ -1165,6 +1196,9 @@ class _QuizPageState extends State<QuizPage> {
         selected = null;
         _saveError = null;
       });
+      if (_choicesScrollController.hasClients) {
+        _choicesScrollController.jumpTo(0);
+      }
       return;
     }
     setState(() {
@@ -1186,6 +1220,18 @@ class _QuizPageState extends State<QuizPage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _reviewMistakes() async {
+    if (_mistakes.isEmpty) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizMistakesReviewPage(
+          mistakes: List<QuizMistake>.unmodifiable(_mistakes),
+        ),
+      ),
+    );
   }
 
   @override
@@ -1216,6 +1262,31 @@ class _QuizPageState extends State<QuizPage> {
                           const SizedBox(height: 10),
                           Text('أفضل نتيجة: ${_stats.bestScore} من ${_cards.length}',
                             style: const TextStyle(color: Color(0xFF667085))),
+                          const SizedBox(height: 13),
+                          if (_mistakes.isEmpty)
+                            const Text(
+                              'رائع! أجبت عن جميع الكلمات بشكل صحيح.',
+                              key: Key('quiz_no_mistakes'),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF21865B),
+                                fontWeight: FontWeight.w800),
+                            )
+                          else ...[
+                            Text(
+                              'لديك ${_mistakes.length} كلمات تحتاج مراجعة.',
+                              key: const Key('quiz_mistake_summary'),
+                              style: const TextStyle(
+                                color: Color(0xFF667085)),
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              key: const Key('quiz_review_mistakes'),
+                              onPressed: _reviewMistakes,
+                              icon: const Icon(Icons.school_outlined),
+                              label: Text('راجع ${_mistakes.length} كلمات'),
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           FilledButton.icon(
                             onPressed: () {
@@ -1248,6 +1319,7 @@ class _QuizPageState extends State<QuizPage> {
                         const SizedBox(height: 15),
                         Expanded(
                           child: ListView(
+                            controller: _choicesScrollController,
                             children: [
                               const SizedBox(height: 18),
                               const Text('ما معنى الكلمة التالية؟',
@@ -1277,6 +1349,45 @@ class _QuizPageState extends State<QuizPage> {
                                     style: const TextStyle(fontSize: 16)),
                                 ),
                                 const SizedBox(height: 10),
+                              ],
+                              if (selected != null &&
+                                  choices[selected!] != _cards[index].translation) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  key: const Key('quiz_wrong_feedback'),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF0EB),
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('الإجابة الصحيحة',
+                                        style: TextStyle(
+                                          color: Color(0xFFB94824),
+                                          fontWeight: FontWeight.w800)),
+                                      const SizedBox(height: 8),
+                                      Text(_cards[index].translation,
+                                        style: const TextStyle(
+                                          color: navy,
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 5),
+                                      Text('النطق: ${_cards[index].pronunciation}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF667085))),
+                                      const SizedBox(height: 11),
+                                      Text(
+                                        wordInsightFor(_cards[index].id)
+                                            ?.explanation ??
+                                            _cards[index].translation,
+                                        style: const TextStyle(
+                                          color: navy, height: 1.6)),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
                               ],
                             ],
                           ),
