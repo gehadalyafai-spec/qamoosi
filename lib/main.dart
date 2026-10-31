@@ -192,7 +192,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _changeDailyGoal(int goal) async {
-    if (!DailyLearningProgress.allowedGoals.contains(goal)) return;
+    if (!DailyLearningProgress.allowedGoals.contains(goal)) {
+      return;
+    }
     setState(() {
       dailyProgress = dailyProgress.withGoal(goal);
     });
