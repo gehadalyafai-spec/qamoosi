@@ -1031,13 +1031,17 @@ class _WordSearchPageState extends State<WordSearchPage> {
   Future<void> _loadFavorites() async {
     try {
       final saved = await FavoriteWordsRepository.load();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       final knownIds = allCards.map((card) => card.id).toSet();
       setState(() {
         favorites = saved.intersection(knownIds);
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تعذّر تحميل الكلمات المفضلة')),
       );
@@ -1045,7 +1049,9 @@ class _WordSearchPageState extends State<WordSearchPage> {
   }
 
   Future<void> _toggleFavorite(String id) async {
-    if (savingFavorite) return;
+    if (savingFavorite) {
+      return;
+    }
     final previous = favorites;
     final updated = FavoriteWordsRepository.toggle(previous, id);
     setState(() {
@@ -1055,7 +1061,9 @@ class _WordSearchPageState extends State<WordSearchPage> {
     try {
       await FavoriteWordsRepository.save(updated);
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() => favorites = previous);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تعذّر حفظ المفضلة، حاول مجددًا')),
@@ -1075,8 +1083,12 @@ class _WordSearchPageState extends State<WordSearchPage> {
   Widget build(BuildContext context) {
     final term = query.trim().toLowerCase();
     final results = allCards.where((card) {
-      if (favoritesOnly && !favorites.contains(card.id)) return false;
-      if (term.isEmpty) return true;
+      if (favoritesOnly && !favorites.contains(card.id)) {
+        return false;
+      }
+      if (term.isEmpty) {
+        return true;
+      }
       return card.word.toLowerCase().contains(term) ||
           card.translation.toLowerCase().contains(term) ||
           card.pronunciation.toLowerCase().contains(term) ||
