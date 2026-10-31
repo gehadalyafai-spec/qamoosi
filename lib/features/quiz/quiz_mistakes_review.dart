@@ -67,7 +67,9 @@ class QuizMistakesReviewPage extends StatelessWidget {
                           ]),
                           const SizedBox(height: 11),
                           Text(
-                            'لديك ${mistakes.length} كلمات للمراجعة من آخر اختبار.',
+                            mistakes.length == 1
+                                ? 'لديك كلمة واحدة للمراجعة من آخر اختبار.'
+                                : 'لديك ${mistakes.length} كلمات للمراجعة من آخر اختبار.',
                             style: const TextStyle(
                               color: Colors.white, height: 1.5),
                           ),
