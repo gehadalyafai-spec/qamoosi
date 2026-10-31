@@ -89,6 +89,12 @@ const lessons = <Lesson>[
   ]),
 ];
 
+double lessonProgress(Lesson lesson, Set<String> knownCards) {
+  if (lesson.cards.isEmpty) return 0;
+  final completed = lesson.cards.where((card) => knownCards.contains(card.id)).length;
+  return completed / lesson.cards.length;
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -387,6 +393,22 @@ class _HomePageState extends State<HomePage> {
                                           const SizedBox(height: 7),
                                           Text('${lessons[i].cards.where((c) => known.contains(c.id)).length} / ${lessons[i].cards.length} بطاقات',
                                             style: const TextStyle(color: Color(0xFF667085))),
+                                          const SizedBox(height: 10),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: LinearProgressIndicator(
+                                              value: lessonProgress(lessons[i], known),
+                                              minHeight: 6,
+                                              color: const Color(0xFFFF653B),
+                                              backgroundColor: const Color(0xFFECEEF3),
+                                            ),
+                                          ),
+                                          if (lessonProgress(lessons[i], known) == 1) ...[
+                                            const SizedBox(height: 6),
+                                            const Text('أكملت هذا الدرس ✓',
+                                              style: TextStyle(color: Color(0xFF21865B),
+                                                fontSize: 12, fontWeight: FontWeight.w700)),
+                                          ],
                                         ],
                                       )),
                                       const Icon(Icons.arrow_back_ios_new_rounded, size: 17, color: purple),
