@@ -89,23 +89,9 @@ class DailyLearningProgress {
         final key = entry.key;
         final cards = entry.value;
         if (key is! String ||
-            !RegExp(r'^\d{4}-\d{2}-\d{2}.hasMatch(key) ||
+            !RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(key) ||
             DateTime.tryParse(key) == null ||
             dateKey(DateTime.parse(key)) != key ||
-            cards is! List) {
-          continue;
-        }
-        final validIds = cards.whereType<String>()
-            .map((id) => id.trim())
-            .where((id) => id.isNotEmpty).toSet();
-        if (validIds.isNotEmpty) days[key] = validIds;
-      }
-    }
-    return DailyLearningProgress(dailyGoal: goal, activity: days);
-  }
-}
-).hasMatch(key) ||
-            DateTime.tryParse(key) == null ||
             cards is! List) {
           continue;
         }
