@@ -11,6 +11,10 @@ void main() {
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
     expect(find.text('الإنجليزية التقنية'), findsOneWidget);
+    await tester.ensureVisible(find.text('أساسيات البرمجة'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -220));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('أساسيات البرمجة'));
     await tester.pumpAndSettle();
     expect(find.text('Variable'), findsOneWidget);
@@ -28,7 +32,7 @@ void main() {
     expect(find.textContaining('أتقنت'), findsOneWidget);
     await tester.tap(find.text('المراجعة').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('بطاقات مستحقة'), findsOneWidget);
+    expect(find.text('بطاقات مستحقة: 0'), findsOneWidget);
   });
   testWidgets('review tab launches only due flashcards', (tester) async {
     SharedPreferences.setMockInitialValues({
