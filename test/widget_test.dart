@@ -54,7 +54,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('إنجازاتي').last);
     await tester.pumpAndSettle();
-    expect(find.text('أتقنت 1 من 60 بطاقة'), findsOneWidget);
+    expect(find.text('أتقنت 1 من 180 بطاقة'), findsOneWidget);
     expect(find.text('دروس مكتملة'), findsOneWidget);
     expect(find.text('مستحقة للمراجعة'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -73,23 +73,25 @@ void main() {
     expect(find.text('تفاصيل الدروس'), findsOneWidget);
   });
 
-  test('quiz covers all six lessons and rotates after each attempt', () {
-    final firstAttempt = buildQuizCards(0);
-    final secondAttempt = buildQuizCards(1);
-    expect(firstAttempt.length, lessons.length);
-    expect(firstAttempt.map((card) => card.id).toSet().length, lessons.length);
-    for (var i = 0; i < lessons.length; i++) {
-      expect(lessons[i].cards.contains(firstAttempt[i]), isTrue);
-      expect(lessons[i].cards.contains(secondAttempt[i]), isTrue);
-      expect(firstAttempt[i].id, isNot(secondAttempt[i].id));
+  test('quiz covers all eighteen lessons in three consecutive attempts', () {
+    expect(lessons.length, 18);
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final cards = buildQuizCards(attempt);
+      expect(cards.length, 6);
+      expect(cards.map((card) => card.id).toSet().length, 6);
+      for (var offset = 0; offset < 6; offset++) {
+        expect(lessons[attempt * 6 + offset].cards.contains(cards[offset]), isTrue);
+      }
     }
-    expect(firstAttempt.first.word, 'Variable');
-    expect(secondAttempt.first.word, 'Constant');
+    expect(buildQuizCards(0).first.word, 'Variable');
+    expect(buildQuizCards(1).first.word, 'CPU');
+    expect(buildQuizCards(2).first.word, 'Table');
+    expect(buildQuizCards(3).first.word, 'Constant');
   });
 
-  test('six-question quizzes cycle through all sixty words in ten attempts', () {
+  test('six-question quizzes cover all 180 terms in thirty attempts', () {
     final seen = <String>{};
-    for (var attempt = 0; attempt < 10; attempt++) {
+    for (var attempt = 0; attempt < 30; attempt++) {
       final questions = buildQuizCards(attempt);
       expect(questions.length, 6);
       for (final card in questions) {
@@ -97,7 +99,9 @@ void main() {
           reason: 'Duplicate question for ${card.id} before full rotation');
       }
     }
-    expect(seen.length, 60);
+    expect(seen.length, 180);
+    expect(buildQuizCards(30).first.id, 'variable');
+    expect(buildQuizCards(-1).first.id, 'variable');
   });
 
   test('completed quiz history keeps best result and counts attempts', () async {
@@ -318,20 +322,26 @@ void main() {
     final beginner = filterLessonsByLevel(lessons, LearningLevel.beginner);
     final intermediate = filterLessonsByLevel(lessons, LearningLevel.intermediate);
     final all = filterLessonsByLevel(lessons, null);
-    expect(all.length, 6);
-    expect(beginner.length, 3);
-    expect(intermediate.length, 3);
+    expect(all.length, 18);
+    expect(beginner.length, 7);
+    expect(intermediate.length, 11);
     expect(beginner.map((lesson) => lesson.title).toSet(), {
       'أساسيات البرمجة', 'الملفات والمجلدات', 'تشغيل البرامج',
+      'الحاسوب ومكوناته', 'عناصر واجهة التطبيق',
+      'التصميم وتجربة المستخدم', 'الحسابات والحماية الأساسية',
     });
     expect(intermediate.map((lesson) => lesson.title).toSet(), {
       'الأخطاء والتطوير', 'Git وGitHub', 'الويب وقواعد البيانات',
+      'أساسيات Dart وFlutter', 'هياكل البيانات والكائنات',
+      'قواعد البيانات وSQL', 'تقنيات الويب الحديثة',
+      'واجهات API والاتصال', 'مفاهيم الأمان الرقمي',
+      'السحابة والتشغيل الاحترافي', 'الذكاء الاصطناعي وتحليل البيانات',
     });
     final idsByLevel = {
       for (final lesson in beginner) ...lesson.cards.map((card) => card.id),
       for (final lesson in intermediate) ...lesson.cards.map((card) => card.id),
     };
-    expect(idsByLevel.length, 60);
+    expect(idsByLevel.length, 180);
     expect(filterLessonsByLevel(const [], null), isEmpty);
   });
 
@@ -350,11 +360,11 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 6'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 18'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('level_intermediate')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 3'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 11'), findsOneWidget);
     expect(
       tester.widget<ChoiceChip>(
         find.byKey(const Key('level_intermediate')),
@@ -364,7 +374,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('level_beginner')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 3'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 7'), findsOneWidget);
     expect(
       tester.widget<ChoiceChip>(
         find.byKey(const Key('level_beginner')),
@@ -374,7 +384,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('level_all')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 6'), findsOneWidget);
+    expect(find.text('الدروس المعروضة: 18'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('known_cards'), ['variable']);
   });
@@ -388,7 +398,7 @@ void main() {
       ['server', 'client', 'database', 'api', 'request'],
       ['run', 'compile', 'output', 'input', 'result'],
     ];
-    for (var i = 0; i < lessons.length; i++) {
+    for (var i = 0; i < originalIds.length; i++) {
       expect(
         lessons[i].cards.take(5).map((card) => card.id).toList(),
         originalIds[i],
@@ -396,10 +406,10 @@ void main() {
     }
   });
 
-  test('vocabulary has six lessons, sixty unique cards', () {
-    expect(lessons.length, 6);
+  test('vocabulary has eighteen lessons and 180 unique cards', () {
+    expect(lessons.length, 18);
     final cards = [for (final lesson in lessons) ...lesson.cards];
-    expect(cards.length, 60);
+    expect(cards.length, 180);
     expect(lessons.every((lesson) => lesson.cards.length == 10), isTrue);
     expect(cards.map((card) => card.id).toSet().length, cards.length);
     expect(cards.every((card) => card.word.isNotEmpty && card.translation.isNotEmpty && card.pronunciation.isNotEmpty), isTrue);
@@ -494,7 +504,7 @@ void main() {
     expect(prefs.getInt('quiz_last_score'), 6);
     await tester.tap(find.text('اختبار جديد'));
     await tester.pumpAndSettle();
-    expect(find.text('Constant'), findsOneWidget);
+    expect(find.text('CPU'), findsOneWidget);
   });
 
   testWidgets('wrong quiz answer requires manual continuation',
