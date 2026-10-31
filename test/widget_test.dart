@@ -256,12 +256,33 @@ void main() {
     await tester.tap(find.text('عرفتها'));
     await tester.pumpAndSettle();
 
-    final card = tester.widget<LearningPathCard>(
-      find.byKey(const Key('learning_path_card')),
-    );
-    expect(card.lessonTitle, 'الملفات والمجلدات');
+    // Verify persistence and recommendation independently before touching
+    // the sliver-built widget. A card can be outside the current viewport
+    // after returning from the full-screen lesson.
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getStringList('known_cards'), contains('object'));
+    final persisted = prefs.getStringList('known_cards') ?? <String>[];
+    expect(persisted, contains('object'),
+      reason: 'Completing the final card must persist its original ID.');
+    expect(recommendNextLesson(lessons, persisted.toSet())?.title,
+      'الملفات والمجلدات',
+      reason: 'The next unfinished beginner lesson should be recommended.');
+
+    final pathCard = find.byKey(const Key('learning_path_card'));
+    await tester.scrollUntilVisible(
+      pathCard,
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(pathCard),
+      alignment: 0.2,
+    );
+    await tester.pumpAndSettle();
+
+    final card = tester.widget<LearningPathCard>(pathCard);
+    expect(card.lessonTitle, 'الملفات والمجلدات',
+      reason: 'The home card should reflect the newly completed lesson.');
   });
 
   testWidgets('completed path displays celebration instead of start',
