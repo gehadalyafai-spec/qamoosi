@@ -54,17 +54,19 @@ void main() {
     expect(find.text('مرات الخطأ السابقة: 3'), findsOneWidget);
     expect(find.text(practiceQuestions.first.prompt), findsOneWidget);
     await tester.tap(find.byKey(const Key('practice_choice_1')));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(find.text('إجابة صحيحة!'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('practice_next')));
+    expect(find.byKey(const Key('practice_next')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 750));
     await tester.pumpAndSettle();
 
     expect(find.text('الموقف 2 من 2'), findsOneWidget);
     expect(find.text('مرات الخطأ السابقة: 1'), findsOneWidget);
     expect(find.text(practiceQuestions[2].prompt), findsOneWidget);
     await tester.tap(find.byKey(const Key('practice_choice_0')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('practice_next')));
+    await tester.pump();
+    expect(find.byKey(const Key('practice_next')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 750));
     await tester.pumpAndSettle();
 
     expect(find.text('أنهيت مراجعة أخطائك!'), findsOneWidget);
@@ -93,8 +95,16 @@ void main() {
           ? (questions[i].correctIndex + 1) % 4
           : questions[i].correctIndex;
       await tester.tap(find.byKey(Key('practice_choice_$choice')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('practice_next')));
+      await tester.pump();
+      if (i == 0) {
+        // Wrong answers retain their explanation and manual continue button.
+        await tester.pump(const Duration(milliseconds: 850));
+        expect(find.byKey(const Key('practice_next')), findsOneWidget);
+        await tester.tap(find.byKey(const Key('practice_next')));
+      } else {
+        expect(find.byKey(const Key('practice_next')), findsNothing);
+        await tester.pump(const Duration(milliseconds: 750));
+      }
       await tester.pumpAndSettle();
     }
 
@@ -110,8 +120,8 @@ void main() {
     expect(find.text('مراجعة أخطائي'), findsOneWidget);
     expect(find.text('الموقف 1 من 1'), findsOneWidget);
     await tester.tap(find.byKey(const Key('practice_choice_1')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('practice_next')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
     await tester.pumpAndSettle();
     expect(find.text('مواقف تحتاج مراجعة: 0'), findsOneWidget);
 
@@ -144,8 +154,8 @@ void main() {
     expect(find.text(practiceQuestions[1].prompt), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('practice_choice_2')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('practice_next')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
     await tester.pumpAndSettle();
     expect(find.text('مواقف تحتاج مراجعة: 0'), findsOneWidget);
 
