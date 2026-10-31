@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'core/review_scheduler.dart';
+import 'core/smart_study_plan.dart';
 import 'core/quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
 import 'core/favorite_words_repository.dart';
@@ -14,6 +15,7 @@ import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 import 'features/achievements/learning_overview.dart';
 import 'features/path/learning_path_card.dart';
+import 'features/plan/smart_study_plan_page.dart';
 import 'features/practice/practice_page.dart';
 import 'features/practice/practice_mistakes.dart';
 import 'features/practice/practice_stats.dart';
@@ -364,6 +366,67 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
+  SmartStudyPlan _currentSmartStudyPlan() => SmartStudyPlan.build(
+    lessons: [
+      for (final lesson in lessons)
+        StudyPlanLesson(
+          title: lesson.title,
+          levelRank: lesson.level.index,
+          cards: [
+            for (final card in lesson.cards)
+              StudyPlanCard(id: card.id, word: card.word),
+          ],
+        ),
+    ],
+    knownIds: known,
+    reviews: reviews,
+    dailyProgress: dailyProgress,
+    now: DateTime.now(),
+    pendingPracticeMistakes: pendingPracticeMistakes,
+  );
+
+  Future<SmartStudyPlan> _loadSmartStudyPlan() async {
+    await _load();
+    return _currentSmartStudyPlan();
+  }
+
+  Future<void> _openPlanCards(
+    List<String> cardIds, {
+    required String title,
+  }) async {
+    if (cardIds.isEmpty) return;
+    final catalog = {
+      for (final lesson in lessons)
+        for (final card in lesson.cards) card.id: card,
+    };
+    final cards = [
+      for (final id in cardIds)
+        if (catalog.containsKey(id)) catalog[id]!,
+    ];
+    if (cards.isEmpty) return;
+    await _openLesson(Lesson(title, cards));
+  }
+
+  Future<void> _openSmartStudyPlan() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SmartStudyPlanPage(
+          loadPlan: _loadSmartStudyPlan,
+          onReviewCards: (ids) => _openPlanCards(
+            ids, title: 'مراجعات خطتي اليوم',
+          ),
+          onLearnCards: (ids) => _openPlanCards(
+            ids, title: 'كلمات جديدة لليوم',
+          ),
+          onReviewMistakes: _openMistakeReview,
+          onPractice: _openPractice,
+        ),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
   Future<void> _openReview() async {
     final now = DateTime.now();
     final dueCards = [
@@ -391,6 +454,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final allIds = {for (final lesson in lessons) for (final card in lesson.cards) card.id};
     final due = reviews.entries.where((r) => allIds.contains(r.key) && r.value.isDue(DateTime.now())).length;
     final recommendedLesson = recommendNextLesson(lessons, known);
+    final smartPlan = _currentSmartStudyPlan();
     const navy = Color(0xFF101D32);
     const purple = Color(0xFF6857CE);
     return Directionality(
@@ -504,7 +568,61 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             onGoalChanged: _changeDailyGoal,
                           ),
                           const SizedBox(height: 16),
-                          LearningPathCard(
+                          Material(
+                             color: const Color(0xFFECE7FF),
+                             borderRadius: BorderRadius.circular(24),
+                             child: InkWell(
+                               key: const Key('open_smart_study_plan'),
+                               borderRadius: BorderRadius.circular(24),
+                               onTap: _openSmartStudyPlan,
+                               child: Padding(
+                                 padding: const EdgeInsets.all(19),
+                                 child: Column(
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                     const Row(children: [
+                                       Icon(Icons.auto_awesome_rounded,
+                                         color: Color(0xFF6857CE), size: 28),
+                                       SizedBox(width: 11),
+                                       Expanded(child: Text('خطتي الذكية اليوم',
+                                         style: TextStyle(
+                                           color: Color(0xFF101D32),
+                                           fontSize: 19,
+                                           fontWeight: FontWeight.w900))),
+                                       Icon(Icons.arrow_back_ios_new_rounded,
+                                         color: Color(0xFF6857CE), size: 16),
+                                     ]),
+                                     const SizedBox(height: 9),
+                                     Text(
+                                       smartPlan.goalMet
+                                           ? 'وصلت إلى هدفك اليوم؛ واصل تثبيت ما تعلمته.'
+                                           : 'المتبقي لهدفك: ${smartPlan.remainingToday} بطاقات.',
+                                       style: const TextStyle(
+                                         color: Color(0xFF51607A), fontSize: 14),
+                                     ),
+                                     const SizedBox(height: 12),
+                                     Wrap(
+                                       spacing: 8,
+                                       runSpacing: 7,
+                                       children: [
+                                         _HomePlanChip(
+                                           text: 'مراجعات: ${smartPlan.dueCount}',
+                                         ),
+                                         _HomePlanChip(
+                                           text: 'كلمات جديدة: ${smartPlan.newCards.length}',
+                                         ),
+                                         _HomePlanChip(
+                                           text: 'أخطاء: ${smartPlan.pendingPracticeMistakes}',
+                                         ),
+                                       ],
+                                     ),
+                                   ],
+                                 ),
+                               ),
+                             ),
+                           ),
+                           const SizedBox(height: 16),
+                           LearningPathCard(
                             lessonTitle: recommendedLesson?.title,
                             levelLabel: recommendedLesson?.level.label,
                             learned: recommendedLesson == null
@@ -892,6 +1010,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+class _HomePlanChip extends StatelessWidget {
+  const _HomePlanChip({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.75),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Text(text, style: const TextStyle(
+      color: Color(0xFF514078),
+      fontSize: 12,
+      fontWeight: FontWeight.w700)),
+  );
 }
 
 class LessonPage extends StatefulWidget {
