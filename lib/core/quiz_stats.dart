@@ -22,8 +22,8 @@ class QuizStats {
     final best = prefs.getInt(bestScoreKey) ?? 0;
     return QuizStats(
       attempts: attempts < 0 ? 0 : attempts,
-      lastScore: last.clamp(0, 6),
-      bestScore: best.clamp(0, 6),
+      lastScore: last.clamp(0, 6).toInt(),
+      bestScore: best.clamp(0, 6).toInt(),
     );
   }
 
