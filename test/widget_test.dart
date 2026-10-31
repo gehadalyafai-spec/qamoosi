@@ -54,7 +54,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('إنجازاتي').last);
     await tester.pumpAndSettle();
-    expect(find.text('أتقنت 1 من 30 بطاقة'), findsOneWidget);
+    expect(find.text('أتقنت 1 من 60 بطاقة'), findsOneWidget);
     expect(find.text('دروس مكتملة'), findsOneWidget);
     expect(find.text('مستحقة للمراجعة'), findsOneWidget);
     await tester.scrollUntilVisible(
@@ -153,7 +153,7 @@ void main() {
   test('lesson progress counts only known cards in that lesson', () {
     final lesson = lessons.first;
     expect(lessonProgress(lesson, {}), 0);
-    expect(lessonProgress(lesson, {lesson.cards.first.id}), 0.2);
+    expect(lessonProgress(lesson, {lesson.cards.first.id}), 0.1);
     expect(lessonProgress(lesson, {for (final card in lesson.cards) card.id}), 1);
     expect(lessonProgress(lesson, {'unknown-card'}), 0);
   });
@@ -196,13 +196,15 @@ void main() {
   test('learning path resumes remaining cards with unchanged IDs', () {
     final original = lessons.first;
     final remaining = lessonRemainingToLearn(original, {'variable'});
-    expect(original.cards.length, 5);
-    expect(remaining.cards.length, 4);
+    expect(original.cards.length, 10);
+    expect(remaining.cards.length, 9);
     expect(remaining.title, original.title);
     expect(remaining.level, original.level);
     expect(remaining.cards.first.word, 'Constant');
-    expect(remaining.cards.map((card) => card.id).toSet(),
-      {'constant', 'function', 'parameter', 'return'});
+    expect(
+      remaining.cards.map((card) => card.id).toList(),
+      original.cards.skip(1).map((card) => card.id).toList(),
+    );
     expect(lessonRemainingToLearn(original, {
       for (final card in original.cards) card.id,
     }).cards, isEmpty);
@@ -219,7 +221,7 @@ void main() {
     await openHomeAction(tester, const Key('learning_path_start'));
     expect(find.text('أساسيات البرمجة'), findsOneWidget);
     expect(find.text('Constant'), findsOneWidget);
-    expect(find.text('البطاقة 1 من 4'), findsOneWidget);
+    expect(find.text('البطاقة 1 من 9'), findsOneWidget);
   });
 
   testWidgets('finishing suggested lesson advances to next beginner lesson',
@@ -227,13 +229,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(900, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues({
-      'known_cards': ['variable', 'constant', 'function', 'parameter'],
+      'known_cards': [
+        for (final card in lessons.first.cards.take(9)) card.id,
+      ],
     });
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
 
     await openHomeAction(tester, const Key('learning_path_start'));
-    expect(find.text('Return'), findsOneWidget);
+    expect(find.text('Object'), findsOneWidget);
     expect(find.text('البطاقة 1 من 1'), findsOneWidget);
 
     await tester.tap(find.text('عرفتها'));
@@ -244,7 +248,7 @@ void main() {
     );
     expect(card.lessonTitle, 'الملفات والمجلدات');
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getStringList('known_cards'), contains('return'));
+    expect(prefs.getStringList('known_cards'), contains('object'));
   });
 
   testWidgets('completed path displays celebration instead of start',
@@ -286,7 +290,7 @@ void main() {
       for (final lesson in beginner) ...lesson.cards.map((card) => card.id),
       for (final lesson in intermediate) ...lesson.cards.map((card) => card.id),
     };
-    expect(idsByLevel.length, 30);
+    expect(idsByLevel.length, 60);
     expect(filterLessonsByLevel(const [], null), isEmpty);
   });
 
@@ -334,10 +338,28 @@ void main() {
     expect(prefs.getStringList('known_cards'), ['variable']);
   });
 
-  test('vocabulary has six lessons, thirty unique cards', () {
+  test('expansion preserves original learning identifiers and their order', () {
+    const originalIds = <List<String>>[
+      ['variable', 'constant', 'function', 'parameter', 'return'],
+      ['bug', 'debug', 'syntax', 'build', 'release'],
+      ['repository', 'branch', 'commit', 'push', 'pull'],
+      ['file', 'folder', 'path', 'save', 'open'],
+      ['server', 'client', 'database', 'api', 'request'],
+      ['run', 'compile', 'output', 'input', 'result'],
+    ];
+    for (var i = 0; i < lessons.length; i++) {
+      expect(
+        lessons[i].cards.take(5).map((card) => card.id).toList(),
+        originalIds[i],
+      );
+    }
+  });
+
+  test('vocabulary has six lessons, sixty unique cards', () {
     expect(lessons.length, 6);
     final cards = [for (final lesson in lessons) ...lesson.cards];
-    expect(cards.length, 30);
+    expect(cards.length, 60);
+    expect(lessons.every((lesson) => lesson.cards.length == 10), isTrue);
     expect(cards.map((card) => card.id).toSet().length, cards.length);
     expect(cards.every((card) => card.word.isNotEmpty && card.translation.isNotEmpty && card.pronunciation.isNotEmpty), isTrue);
   });
