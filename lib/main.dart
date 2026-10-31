@@ -1806,7 +1806,9 @@ extension _SeededShuffle<T> on List<T> {
 
 
 class WordSearchPage extends StatefulWidget {
-  const WordSearchPage({super.key});
+  const WordSearchPage({super.key, this.speaker});
+
+  final WordSpeaker? speaker;
 
   @override
   State<WordSearchPage> createState() => _WordSearchPageState();
@@ -1814,6 +1816,7 @@ class WordSearchPage extends StatefulWidget {
 
 class _WordSearchPageState extends State<WordSearchPage> {
   final TextEditingController controller = TextEditingController();
+  late final WordSpeaker _speaker;
   static final List<CardEntry> allCards = [
     for (final lesson in lessons) ...lesson.cards,
   ];
@@ -1826,6 +1829,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
   @override
   void initState() {
     super.initState();
+    _speaker = widget.speaker ?? FlutterWordSpeaker();
     _loadFavorites();
   }
 
@@ -1881,6 +1885,7 @@ class _WordSearchPageState extends State<WordSearchPage> {
   @override
   void dispose() {
     controller.dispose();
+    unawaited(_speaker.stop().catchError((Object _) {}));
     super.dispose();
   }
 
@@ -1985,10 +1990,22 @@ class _WordSearchPageState extends State<WordSearchPage> {
                           child: ExpansionTile(
                             shape: const Border(),
                             collapsedShape: const Border(),
-                            title: Text(card.word,
-                              textDirection: TextDirection.ltr,
-                              style: const TextStyle(fontSize: 19,
-                                fontWeight: FontWeight.w800)),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(card.word,
+                                    textDirection: TextDirection.ltr,
+                                    style: const TextStyle(fontSize: 19,
+                                      fontWeight: FontWeight.w800)),
+                                ),
+                                WordPronunciationButton(
+                                  key: Key('search_speak_${card.id}'),
+                                  word: card.word,
+                                  speaker: _speaker,
+                                  compact: true,
+                                ),
+                              ],
+                            ),
                             subtitle: Text(card.translation),
                             trailing: IconButton(
                               key: Key('favorite_${card.id}'),
@@ -2009,10 +2026,19 @@ class _WordSearchPageState extends State<WordSearchPage> {
                             ),
                             childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
                             children: [
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text('النطق: ${card.pronunciation}',
-                                  style: const TextStyle(color: Color(0xFF6554C0))),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text('النطق: ${card.pronunciation}',
+                                      style: const TextStyle(color: Color(0xFF6554C0))),
+                                  ),
+                                  WordPronunciationButton(
+                                    key: Key('search_speak_slow_${card.id}'),
+                                    word: card.word,
+                                    speaker: _speaker,
+                                    slowly: true,
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 10),
                               Align(
