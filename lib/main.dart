@@ -206,6 +206,21 @@ bool matchesVocabularyQuery(CardEntry card, String query) {
   ].any((text) => text.toLowerCase().contains(term));
 }
 
+/// Rank exact English matches ahead of related examples or explanations.
+/// Keeps the broad offline search useful without burying the word typed.
+int vocabularySearchPriority(CardEntry card, String query) {
+  final term = query.trim().toLowerCase();
+  if (term.isEmpty) return 5;
+  final word = card.word.toLowerCase();
+  final meaning = card.translation.toLowerCase();
+  if (word == term) return 0;
+  if (word.startsWith(term)) return 1;
+  if (meaning == term) return 2;
+  if (meaning.contains(term)) return 3;
+  if (card.pronunciation.toLowerCase().contains(term)) return 4;
+  return 5;
+}
+
 double lessonProgress(Lesson lesson, Set<String> knownCards) {
   if (lesson.cards.isEmpty) {
     return 0;
@@ -1812,6 +1827,11 @@ class _WordSearchPageState extends State<WordSearchPage> {
       }
       return matchesVocabularyQuery(card, query);
     }).toList();
+    if (query.trim().isNotEmpty) {
+      results.sort((a, b) =>
+          vocabularySearchPriority(a, query)
+              .compareTo(vocabularySearchPriority(b, query)));
+    }
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
