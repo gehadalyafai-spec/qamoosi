@@ -15,6 +15,8 @@ import 'features/quiz/quiz_mistakes_review.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 import 'features/achievements/learning_overview.dart';
+import 'features/catalog/vocabulary_sections.dart';
+import 'features/catalog/vocabulary_sections_list.dart';
 import 'features/path/learning_path_card.dart';
 import 'features/plan/smart_study_plan_page.dart';
 import 'features/pronunciation/word_speaker.dart';
@@ -508,12 +510,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final due = reviews.entries.where((r) => allIds.contains(r.key) && r.value.isDue(DateTime.now())).length;
     final recommendedLesson = recommendNextLesson(lessons, known);
     final smartPlan = _currentSmartStudyPlan();
-    final shownLessonIndices = [
-      for (var i = 0; i < lessons.length; i++)
-        if ((selectedLevel == null || lessons[i].level == selectedLevel) &&
-            matchesLessonQuery(lessons[i], lessonQuery))
-          i,
-    ];
+    final visibleSections = selectVocabularySections(
+      lessonTitles: [for (final lesson in lessons) lesson.title],
+      matchesLevel: (index) =>
+          selectedLevel == null || lessons[index].level == selectedLevel,
+      matchesLesson: (index, query) =>
+          matchesLessonQuery(lessons[index], query),
+      query: lessonQuery,
+    );
+    final visibleLessonCount = visibleSections.fold<int>(
+      0, (sum, section) => sum + section.lessonIndices.length,
+    );
     const navy = Color(0xFF101D32);
     const purple = Color(0xFF6857CE);
     return Directionality(
@@ -864,7 +871,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                             textInputAction: TextInputAction.search,
                             decoration: InputDecoration(
-                              hintText: 'ابحث عن درس أو كلمة ضمن الدروس',
+                              hintText: 'ابحث داخل الأقسام والدروس والكلمات',
                               prefixIcon: const Icon(
                                 Icons.manage_search_rounded,
                                 color: Color(0xFF6857CE)),
@@ -889,13 +896,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'الدروس المعروضة: ${shownLessonIndices.length}',
+                            'الأقسام: ${visibleSections.length} • الدروس: $visibleLessonCount',
                             key: const Key('level_lesson_count'),
                             style: const TextStyle(
                               fontSize: 13, color: Color(0xFF667085)),
                           ),
                           const SizedBox(height: 16),
-                          if (shownLessonIndices.isEmpty)
+                          if (visibleSections.isEmpty)
                             const Padding(
                               key: Key('no_lesson_matches'),
                               padding: EdgeInsets.symmetric(vertical: 24),
@@ -904,84 +911,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                   Icon(Icons.search_off_rounded,
                                     size: 44, color: Color(0xFF98A2B3)),
                                   SizedBox(height: 9),
-                                  Text('لا توجد دروس مطابقة للبحث',
+                                  Text('لا توجد أقسام أو دروس مطابقة للبحث',
                                     style: TextStyle(color: Color(0xFF667085))),
                                 ],
                               ),
-                            ),
-                          for (final i in shownLessonIndices)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 14),
-                                child: Material(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                                child: InkWell(
-                                  key: Key('lesson_$i'),
-                                  borderRadius: BorderRadius.circular(24),
-                                  onTap: () => _openLesson(lessons[i]),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(17),
-                                    child: Row(children: [
-                                      Container(
-                                        width: 64, height: 68,
-                                        decoration: BoxDecoration(
-                                          color: [
-                                            const Color(0xFFEAE5FF),
-                                            const Color(0xFFFFE7DC),
-                                            const Color(0xFFDDEEF3),
-                                            const Color(0xFFE8F2E3),
-                                            const Color(0xFFFFEEDA),
-                                            const Color(0xFFE8EAFB),
-                                          ][i % 6],
-                                          borderRadius: BorderRadius.circular(19),
-                                        ),
-                                        child: Icon([
-                                          Icons.code_rounded,
-                                          Icons.bug_report_rounded,
-                                          Icons.account_tree_rounded,
-                                          Icons.folder_copy_rounded,
-                                          Icons.cloud_rounded,
-                                          Icons.play_circle_outline_rounded,
-                                        ][i % 6], size: 31, color: navy),
-                                      ),
-                                      const SizedBox(width: 15),
-                                      Expanded(child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(lessons[i].title,
-                                            style: const TextStyle(fontSize: 17,
-                                              fontWeight: FontWeight.w800, color: navy)),
-                                          const SizedBox(height: 5),
-                                          Text('المستوى: ${lessons[i].level.label}',
-                                            style: const TextStyle(
-                                              fontSize: 12, fontWeight: FontWeight.w700,
-                                              color: Color(0xFF6857CE))),
-                                          const SizedBox(height: 7),
-                                          Text('${lessons[i].cards.where((c) => known.contains(c.id)).length} / ${lessons[i].cards.length} بطاقات',
-                                            style: const TextStyle(color: Color(0xFF667085))),
-                                          const SizedBox(height: 10),
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: LinearProgressIndicator(
-                                              value: lessonProgress(lessons[i], known),
-                                              minHeight: 6,
-                                              color: const Color(0xFFFF653B),
-                                              backgroundColor: const Color(0xFFECEEF3),
-                                            ),
-                                          ),
-                                          if (lessonProgress(lessons[i], known) == 1) ...[
-                                            const SizedBox(height: 6),
-                                            const Text('أكملت هذا الدرس ✓',
-                                              style: TextStyle(color: Color(0xFF21865B),
-                                                fontSize: 12, fontWeight: FontWeight.w700)),
-                                          ],
-                                        ],
-                                      )),
-                                      const Icon(Icons.arrow_back_ios_new_rounded, size: 17, color: purple),
-                                    ]),
-                                  ),
-                                ),
-                              ),
+                            )
+                          else
+                            VocabularySectionsList(
+                              sections: visibleSections,
+                              titleOf: (i) => lessons[i].title,
+                              levelOf: (i) => lessons[i].level.label,
+                              learnedOf: (i) => lessons[i].cards.where(
+                                (card) => known.contains(card.id)).length,
+                              totalOf: (i) => lessons[i].cards.length,
+                              onOpenLesson: (i) => _openLesson(lessons[i]),
+                              expandSearchResults:
+                                  lessonQuery.trim().isNotEmpty,
                             ),
                         ]),
                       ),
