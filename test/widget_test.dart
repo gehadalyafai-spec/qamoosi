@@ -66,5 +66,21 @@ void main() {
     expect(find.text('السؤال 1 من 5'), findsOneWidget);
     expect(find.text('Variable'), findsOneWidget);
   });
+  testWidgets('search finds English and Arabic vocabulary', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('open_word_search')));
+    await tester.pumpAndSettle();
+    expect(find.text('البحث في قاموسي'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('word_search_field')), 'Variable');
+    await tester.pumpAndSettle();
+    expect(find.text('Variable'), findsOneWidget);
+    expect(find.text('متغير'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('word_search_field')), 'لا يوجد');
+    await tester.pumpAndSettle();
+    expect(find.text('لم نعثر على كلمات مطابقة'), findsOneWidget);
+  });
+
 }
 
