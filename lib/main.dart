@@ -619,7 +619,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           fontWeight: FontWeight.w800)),
                                       const SizedBox(height: 5),
                                       Text(pendingPracticeMistakes > 0
-                                          ? '$pendingPracticeMistakes مواقف تحتاج تدريبًا'
+                                          ? 'مواقف تحتاج مراجعة: $pendingPracticeMistakes'
                                           : 'لا توجد أخطاء معلّقة حاليًا',
                                         key: const Key('pending_mistakes_count'),
                                         style: const TextStyle(
