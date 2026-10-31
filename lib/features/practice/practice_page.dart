@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,7 +19,10 @@ class PracticePage extends StatefulWidget {
 }
 
 class _PracticePageState extends State<PracticePage> {
+  static const Duration correctAnswerDelay = Duration(milliseconds: 700);
+
   final ScrollController _scrollController = ScrollController(keepScrollOffset: false);
+  Timer? _autoAdvanceTimer;
   List<PracticeQuestion> _questions = const [];
   PracticeStats _stats = const PracticeStats();
   PracticeMistakes _mistakes = PracticeMistakes.empty;
@@ -39,11 +44,14 @@ class _PracticePageState extends State<PracticePage> {
 
   @override
   void dispose() {
+    _autoAdvanceTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _prepare() async {
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
     setState(() {
       _loading = true;
       _loadError = null;
@@ -90,12 +98,23 @@ class _PracticePageState extends State<PracticePage> {
     if (choice < 0 || choice >= question.options.length) {
       return;
     }
+    final wasCorrect = question.isCorrect(choice);
+    final answeredIndex = _index;
     setState(() {
       _selected = choice;
-      if (question.isCorrect(choice)) {
+      if (wasCorrect) {
         _correct++;
       }
     });
+    if (wasCorrect) {
+      _autoAdvanceTimer?.cancel();
+      _autoAdvanceTimer = Timer(correctAnswerDelay, () {
+        if (mounted && !_finished && !_saving &&
+            _index == answeredIndex && _selected == choice) {
+          _next();
+        }
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
@@ -111,6 +130,8 @@ class _PracticePageState extends State<PracticePage> {
     if (_selected == null || _saving || _finished) {
       return;
     }
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
 
     setState(() {
       _saving = true;
@@ -415,7 +436,25 @@ class _PracticePageState extends State<PracticePage> {
             Text(_saveError!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 8),
           ],
-          if (selected != null)
+          if (selected != null &&
+              question.isCorrect(selected) && _saveError == null)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded,
+                    color: Color(0xFF21865B)),
+                  SizedBox(width: 8),
+                  Text('إجابة صحيحة! الانتقال تلقائيًا...',
+                    style: TextStyle(
+                      color: Color(0xFF21865B),
+                      fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          if (selected != null &&
+              (!question.isCorrect(selected) || _saveError != null))
             FilledButton.icon(
               key: const Key('practice_next'),
               onPressed: _saving ? null : _next,
