@@ -111,37 +111,85 @@ class _PracticePageState extends State<PracticePage> {
     if (_selected == null || _saving || _finished) {
       return;
     }
-    if (_index + 1 < _questions.length) {
-      setState(() {
-        _index++;
-        _selected = null;
-        _saveError = null;
-      });
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(0);
-      }
-      return;
-    }
+
     setState(() {
       _saving = true;
       _saveError = null;
     });
     try {
-      final result = await PracticeStats.record(_correct);
-      if (!mounted) {
+      // A retry of final-score persistence must not count the same mistake
+      // twice. We only commit one answer per question.
+      if (!_answerCommitted) {
+        final prefs = await SharedPreferences.getInstance();
+        final question = _questions[_index];
+        final ledger = await PracticeMistakes.recordAnswer(
+          prefs,
+          questionId: question.id,
+          wasCorrect: question.isCorrect(_selected!),
+        );
+        if (!mounted) {
+          return;
+        }
+        _mistakes = ledger;
+        _answerCommitted = true;
+      }
+
+      if (_index + 1 < _questions.length) {
+        setState(() {
+          _index++;
+          _selected = null;
+          _answerCommitted = false;
+          _saveError = null;
+        });
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
         return;
       }
-      setState(() {
+
+      if (!widget.reviewMistakes) {
+        final result = await PracticeStats.record(_correct);
+        if (!mounted) {
+          return;
+        }
         _stats = result;
-        _finished = true;
-      });
+      }
+      if (mounted) {
+        setState(() => _finished = true);
+      }
     } catch (_) {
       if (mounted) {
-        setState(() => _saveError = 'لم تُحفظ النتيجة. أعد المحاولة.');
+        setState(() => _saveError = 'تعذّر حفظ الإجابة. حاول مجددًا.');
       }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<void> _openMistakeReview() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PracticePage(reviewMistakes: true),
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _mistakes = PracticeMistakes.fromPreferences(prefs);
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذّر تحديث عدد الأخطاء')),
+        );
       }
     }
   }
