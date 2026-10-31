@@ -79,6 +79,17 @@ List<Lesson> filterLessonsByLevel(
     if (level == null || lesson.level == level) lesson,
 ];
 
+/// Find lessons by topic, vocabulary spelling or Arabic meaning offline.
+bool matchesLessonQuery(Lesson lesson, String query) {
+  final term = query.trim().toLowerCase();
+  if (term.isEmpty) return true;
+  return lesson.title.toLowerCase().contains(term) ||
+      lesson.cards.any((card) =>
+          card.word.toLowerCase().contains(term) ||
+          card.translation.toLowerCase().contains(term));
+}
+
+
 final lessons = <Lesson>[
   Lesson('أساسيات البرمجة', [
     CardEntry('variable', 'Variable', 'ڤيريَبُل', 'متغير', 'int count = 1;'),
@@ -249,6 +260,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   DailyLearningProgress dailyProgress = DailyLearningProgress();
   int pendingPracticeMistakes = 0;
   LearningLevel? selectedLevel;
+  String lessonQuery = '';
+  final TextEditingController _lessonSearchController =
+      TextEditingController();
   int selectedTab = 0;
 
   @override
@@ -261,6 +275,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _lessonSearchController.dispose();
     super.dispose();
   }
 
@@ -475,6 +490,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final due = reviews.entries.where((r) => allIds.contains(r.key) && r.value.isDue(DateTime.now())).length;
     final recommendedLesson = recommendNextLesson(lessons, known);
     final smartPlan = _currentSmartStudyPlan();
+    final shownLessonIndices = [
+      for (var i = 0; i < lessons.length; i++)
+        if ((selectedLevel == null || lessons[i].level == selectedLevel) &&
+            matchesLessonQuery(lessons[i], lessonQuery))
+          i,
+    ];
     const navy = Color(0xFF101D32);
     const purple = Color(0xFF6857CE);
     return Directionality(
@@ -816,16 +837,61 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ]),
                           ),
+                          const SizedBox(height: 15),
+                          TextField(
+                            key: const Key('lesson_search_field'),
+                            controller: _lessonSearchController,
+                            onChanged: (value) => setState(
+                              () => lessonQuery = value,
+                            ),
+                            textInputAction: TextInputAction.search,
+                            decoration: InputDecoration(
+                              hintText: 'ابحث عن درس أو كلمة ضمن الدروس',
+                              prefixIcon: const Icon(
+                                Icons.manage_search_rounded,
+                                color: Color(0xFF6857CE)),
+                              suffixIcon: lessonQuery.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      key: const Key('clear_lesson_search'),
+                                      tooltip: 'مسح بحث الدروس',
+                                      onPressed: () {
+                                        _lessonSearchController.clear();
+                                        setState(() => lessonQuery = '');
+                                      },
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 12),
                           Text(
-                            'الدروس المعروضة: ${filterLessonsByLevel(lessons, selectedLevel).length}',
+                            'الدروس المعروضة: ${shownLessonIndices.length}',
                             key: const Key('level_lesson_count'),
                             style: const TextStyle(
                               fontSize: 13, color: Color(0xFF667085)),
                           ),
                           const SizedBox(height: 16),
-                          for (var i = 0; i < lessons.length; i++)
-                            if (selectedLevel == null || lessons[i].level == selectedLevel)
+                          if (shownLessonIndices.isEmpty)
+                            const Padding(
+                              key: Key('no_lesson_matches'),
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.search_off_rounded,
+                                    size: 44, color: Color(0xFF98A2B3)),
+                                  SizedBox(height: 9),
+                                  Text('لا توجد دروس مطابقة للبحث',
+                                    style: TextStyle(color: Color(0xFF667085))),
+                                ],
+                              ),
+                            ),
+                          for (final i in shownLessonIndices)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 14),
                                 child: Material(
