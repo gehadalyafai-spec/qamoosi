@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'dart:ui';
 import 'core/review_scheduler.dart';
 import 'core/quiz_stats.dart';
+import 'core/daily_learning_progress.dart';
+import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 
 void main() {
@@ -108,6 +110,7 @@ class _HomePageState extends State<HomePage> {
   Set<String> known = {};
   Map<String, ReviewState> reviews = {};
   QuizStats quizStats = const QuizStats();
+  DailyLearningProgress dailyProgress = DailyLearningProgress();
   int selectedTab = 0;
 
   @override
@@ -137,14 +140,23 @@ class _HomePageState extends State<HomePage> {
       known = prefs.getStringList('known_cards')?.toSet() ?? {};
       reviews = restored;
       quizStats = QuizStats.fromPreferences(prefs);
+      final dailyJson = prefs.getString(DailyLearningProgress.storageKey);
+      Object? decodedDaily;
+      try {
+        decodedDaily = dailyJson == null ? null : jsonDecode(dailyJson);
+      } on FormatException {
+        decodedDaily = null;
+      }
+      dailyProgress = DailyLearningProgress.fromJson(decodedDaily);
     });
   }
 
   Future<void> _recordKnown(String id, ReviewRating rating) async {
     final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
     setState(() {
       reviews[id] = scheduleReview(
-        now: DateTime.now(),
+        now: now,
         rating: rating,
         previous: reviews[id],
       );
@@ -152,12 +164,29 @@ class _HomePageState extends State<HomePage> {
         known.remove(id);
       } else {
         known.add(id);
+        dailyProgress = dailyProgress.recordSuccess(id, now);
       }
     });
     await prefs.setStringList('known_cards', known.toList());
     await prefs.setString('review_states', jsonEncode(
       reviews.map((key, value) => MapEntry(key, value.toJson())),
     ));
+    await prefs.setString(
+      DailyLearningProgress.storageKey,
+      jsonEncode(dailyProgress.toJson()),
+    );
+  }
+
+  Future<void> _changeDailyGoal(int goal) async {
+    if (!DailyLearningProgress.allowedGoals.contains(goal)) return;
+    setState(() {
+      dailyProgress = dailyProgress.withGoal(goal);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      DailyLearningProgress.storageKey,
+      jsonEncode(dailyProgress.toJson()),
+    );
   }
 
   Future<void> _openSearch() async {
@@ -308,6 +337,12 @@ class _HomePageState extends State<HomePage> {
                           const Text('اختر درسًا وابدأ رحلة التعلم',
                             style: TextStyle(color: Color(0xFF667085))),
                           const SizedBox(height: 18),
+                          DailyGoalCard(
+                            progress: dailyProgress,
+                            now: DateTime.now(),
+                            onGoalChanged: _changeDailyGoal,
+                          ),
+                          const SizedBox(height: 16),
                           Material(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
@@ -441,6 +476,7 @@ class _HomePageState extends State<HomePage> {
                       ],
                       dueCards: due,
                       quizStats: quizStats,
+                      dailyProgress: dailyProgress,
                       scheduledCards: reviews.entries.where((entry) =>
                         allIds.contains(entry.key) && !entry.value.isDue(DateTime.now())).length,
                       onExplore: () => setState(() => selectedTab = 0),
