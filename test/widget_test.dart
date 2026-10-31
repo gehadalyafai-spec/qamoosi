@@ -6,6 +6,7 @@ import 'package:qamoosi/main.dart';
 import 'package:qamoosi/core/quiz_stats.dart';
 import 'package:qamoosi/core/daily_learning_progress.dart';
 import 'package:qamoosi/features/achievements/achievements_panel.dart';
+import 'package:qamoosi/features/path/learning_path_card.dart';
 
 /// A home action may not exist in the element tree until its sliver is
 /// scrolled into view. Move it away from the floating bottom navigation
@@ -219,6 +220,31 @@ void main() {
     expect(find.text('أساسيات البرمجة'), findsOneWidget);
     expect(find.text('Constant'), findsOneWidget);
     expect(find.text('البطاقة 1 من 4'), findsOneWidget);
+  });
+
+  testWidgets('finishing suggested lesson advances to next beginner lesson',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable', 'constant', 'function', 'parameter'],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+
+    await openHomeAction(tester, const Key('learning_path_start'));
+    expect(find.text('Return'), findsOneWidget);
+    expect(find.text('البطاقة 1 من 1'), findsOneWidget);
+
+    await tester.tap(find.text('عرفتها'));
+    await tester.pumpAndSettle();
+
+    final card = tester.widget<LearningPathCard>(
+      find.byKey(const Key('learning_path_card')),
+    );
+    expect(card.lessonTitle, 'الملفات والمجلدات');
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('known_cards'), contains('return'));
   });
 
   testWidgets('completed path displays celebration instead of start',
