@@ -368,11 +368,11 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 30'), findsOneWidget);
+    expect(find.text('الأقسام: 6 • الدروس: 30'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('level_intermediate')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 19'), findsOneWidget);
+    expect(find.text('الأقسام: 5 • الدروس: 19'), findsOneWidget);
     expect(
       tester.widget<ChoiceChip>(
         find.byKey(const Key('level_intermediate')),
@@ -382,7 +382,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('level_beginner')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 11'), findsOneWidget);
+    expect(find.text('الأقسام: 5 • الدروس: 11'), findsOneWidget);
     expect(
       tester.widget<ChoiceChip>(
         find.byKey(const Key('level_beginner')),
@@ -392,7 +392,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('level_all')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 30'), findsOneWidget);
+    expect(find.text('الأقسام: 6 • الدروس: 30'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('known_cards'), ['variable']);
   });
@@ -425,18 +425,18 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(field, 'Webhook');
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 1'), findsOneWidget);
+    expect(find.text('الأقسام: 1 • الدروس: 1'), findsOneWidget);
     expect(find.text('التكاملات وأحداث الأنظمة'), findsOneWidget);
     expect(find.byKey(const Key('no_lesson_matches')), findsNothing);
 
     await tester.enterText(field, 'لا توجد كلمة بهذا الاسم');
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 0'), findsOneWidget);
+    expect(find.text('الأقسام: 0 • الدروس: 0'), findsOneWidget);
     expect(find.byKey(const Key('no_lesson_matches')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('clear_lesson_search')));
     await tester.pumpAndSettle();
-    expect(find.text('الدروس المعروضة: 30'), findsOneWidget);
+    expect(find.text('الأقسام: 6 • الدروس: 30'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('known_cards'),
       ['variable', 'extra_smartphone']);
@@ -474,6 +474,9 @@ void main() {
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
     expect(find.text('الإنجليزية التقنية'), findsOneWidget);
+    // Six broad sections are collapsed until the learner opens a topic.
+    await openHomeAction(tester,
+      const Key('section_expand_programming_all'));
     await openHomeAction(tester, const Key('lesson_0'));
     expect(find.text('Variable'), findsOneWidget);
     await tester.tap(find.byKey(const Key('flip_card')));
