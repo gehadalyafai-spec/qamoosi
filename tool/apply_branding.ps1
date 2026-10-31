@@ -26,6 +26,10 @@ try {
     flutter pub get
     if ($LASTEXITCODE -ne 0) { throw 'flutter pub get failed.' }
 
+    Write-Host 'Configuring native English pronunciation on Android...' -ForegroundColor Cyan
+    dart run tool/configure_tts_android.dart
+    if ($LASTEXITCODE -ne 0) { throw 'Android pronunciation setup failed.' }
+
     Write-Host 'Applying Qamoosi Android and Web icons...' -ForegroundColor Cyan
     dart run flutter_launcher_icons
     if ($LASTEXITCODE -ne 0) { throw 'Icon generation failed.' }
