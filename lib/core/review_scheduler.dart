@@ -24,12 +24,16 @@ class ReviewState {
   };
 
   static ReviewState? fromJson(Object? value) {
-    if (value is! Map) return null;
+    if (value is! Map) {
+      return null;
+    }
     final due = DateTime.tryParse(value['dueAt']?.toString() ?? '');
     final days = value['intervalDays'];
     final reviews = value['successfulReviews'];
     if (due == null || days is! int || reviews is! int ||
-        days < 0 || reviews < 0) return null;
+        days < 0 || reviews < 0) {
+      return null;
+    }
     return ReviewState(
       dueAt: due.toUtc(),
       intervalDays: days,
