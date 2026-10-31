@@ -157,6 +157,71 @@ void main() {
     expect(lessonProgress(lesson, {'unknown-card'}), 0);
   });
 
+  test('levels partition all lessons without duplicate cards', () {
+    final beginner = filterLessonsByLevel(lessons, LearningLevel.beginner);
+    final intermediate = filterLessonsByLevel(lessons, LearningLevel.intermediate);
+    final all = filterLessonsByLevel(lessons, null);
+    expect(all.length, 6);
+    expect(beginner.length, 3);
+    expect(intermediate.length, 3);
+    expect(beginner.map((lesson) => lesson.title).toSet(), {
+      'أساسيات البرمجة', 'الملفات والمجلدات', 'تشغيل البرامج',
+    });
+    expect(intermediate.map((lesson) => lesson.title).toSet(), {
+      'الأخطاء والتطوير', 'Git وGitHub', 'الويب وقواعد البيانات',
+    });
+    final idsByLevel = {
+      for (final lesson in beginner) ...lesson.cards.map((card) => card.id),
+      for (final lesson in intermediate) ...lesson.cards.map((card) => card.id),
+    };
+    expect(idsByLevel.length, 30);
+    expect(filterLessonsByLevel(const [], null), isEmpty);
+  });
+
+  testWidgets('lesson level filters do not reset saved progress', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable'],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('level_intermediate')),
+      170,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 6'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('level_intermediate')));
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 3'), findsOneWidget);
+    expect(
+      tester.widget<ChoiceChip>(
+        find.byKey(const Key('level_intermediate')),
+      ).selected,
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const Key('level_beginner')));
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 3'), findsOneWidget);
+    expect(
+      tester.widget<ChoiceChip>(
+        find.byKey(const Key('level_beginner')),
+      ).selected,
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const Key('level_all')));
+    await tester.pumpAndSettle();
+    expect(find.text('الدروس المعروضة: 6'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('known_cards'), ['variable']);
+  });
+
   test('vocabulary has six lessons, thirty unique cards', () {
     expect(lessons.length, 6);
     final cards = [for (final lesson in lessons) ...lesson.cards];
