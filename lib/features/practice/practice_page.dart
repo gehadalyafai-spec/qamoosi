@@ -14,7 +14,7 @@ class PracticePage extends StatefulWidget {
 }
 
 class _PracticePageState extends State<PracticePage> {
-  final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController(keepScrollOffset: false);
   List<PracticeQuestion> _questions = const [];
   PracticeStats _stats = const PracticeStats();
   int _index = 0;
