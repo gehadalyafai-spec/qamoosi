@@ -3,11 +3,12 @@ description: Arabic-first offline educational flashcards starter
 publish_to: none
 version: 0.2.0+2
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.4.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.3.2
+  flutter_tts: ^4.2.5
   flutter_localizations:
     sdk: flutter
 dev_dependencies:
