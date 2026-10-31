@@ -87,6 +87,19 @@ void main() {
     expect(secondAttempt.first.word, 'Constant');
   });
 
+  test('six-question quizzes cycle through all sixty words in ten attempts', () {
+    final seen = <String>{};
+    for (var attempt = 0; attempt < 10; attempt++) {
+      final questions = buildQuizCards(attempt);
+      expect(questions.length, 6);
+      for (final card in questions) {
+        expect(seen.add(card.id), isTrue,
+          reason: 'Duplicate question for ${card.id} before full rotation');
+      }
+    }
+    expect(seen.length, 60);
+  });
+
   test('completed quiz history keeps best result and counts attempts', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
