@@ -436,27 +436,58 @@ class _PracticePageState extends State<PracticePage> {
             const Icon(Icons.workspace_premium_rounded,
               size: 73, color: Color(0xFFFF653B)),
             const SizedBox(height: 16),
-            Text('أكملت التدريب العملي!',
+            Text(widget.reviewMistakes
+                ? 'أنهيت مراجعة أخطائك!'
+                : 'أكملت التدريب العملي!',
               style: TextStyle(
                 color: navy, fontSize: 23, fontWeight: FontWeight.w900)),
             const SizedBox(height: 13),
             Text('نتيجتك: $_correct من ${_questions.length}',
               style: TextStyle(
                 color: navy, fontSize: 21, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 10),
-            Text('أفضل نتيجة: ${_stats.bestScore} من 6',
-              style: const TextStyle(color: Color(0xFF667085))),
-            const SizedBox(height: 5),
-            Text('التدريبات المكتملة: ${_stats.attempts}',
-              style: const TextStyle(color: Color(0xFF667085))),
+            const SizedBox(height: 12),
+            if (widget.reviewMistakes) ...[
+              Text('مواقف تحتاج مراجعة: ${_mistakes.pendingCount}',
+                key: const Key('practice_remaining_mistakes'),
+                style: const TextStyle(color: Color(0xFF667085))),
+            ] else ...[
+              Text('أفضل نتيجة: ${_stats.bestScore} من 6',
+                style: const TextStyle(color: Color(0xFF667085))),
+              const SizedBox(height: 5),
+              Text('التدريبات المكتملة: ${_stats.attempts}',
+                style: const TextStyle(color: Color(0xFF667085))),
+              const SizedBox(height: 8),
+              Text('مواقف تحتاج مراجعة: ${_mistakes.pendingCount}',
+                key: const Key('practice_remaining_mistakes'),
+                style: const TextStyle(color: Color(0xFF667085))),
+            ],
             const SizedBox(height: 24),
-            FilledButton.icon(
-              key: const Key('practice_retry'),
-              onPressed: _prepare,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('تدريب جديد'),
-            ),
-            const SizedBox(height: 9),
+            if (widget.reviewMistakes && _mistakes.pendingCount == 0)
+              const Text('ممتاز! لا توجد أخطاء متبقية حاليًا.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF21865B),
+                  fontWeight: FontWeight.w800)),
+            if (!widget.reviewMistakes || _mistakes.pendingCount > 0) ...[
+              FilledButton.icon(
+                key: const Key('practice_retry'),
+                onPressed: _prepare,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(widget.reviewMistakes
+                    ? 'مراجعة الأخطاء المتبقية'
+                    : 'تدريب جديد'),
+              ),
+              const SizedBox(height: 9),
+            ],
+            if (!widget.reviewMistakes && _mistakes.pendingCount > 0) ...[
+              OutlinedButton.icon(
+                key: const Key('practice_review_mistakes'),
+                onPressed: _openMistakeReview,
+                icon: const Icon(Icons.rule_rounded),
+                label: const Text('مراجعة أخطائي الآن'),
+              ),
+              const SizedBox(height: 9),
+            ],
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('العودة للرئيسية'),
@@ -466,4 +497,5 @@ class _PracticePageState extends State<PracticePage> {
       ),
     );
   }
+
 }
