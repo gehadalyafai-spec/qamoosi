@@ -16,6 +16,10 @@ jobs:
         run: flutter create --platforms=android,web .
       - name: Resolve packages
         run: flutter pub get
+      - name: Configure Android English speech visibility
+        run: dart run tool/configure_tts_android.dart
+      - name: Verify Android TTS manifest
+        run: grep -q "android.intent.action.TTS_SERVICE" android/app/src/main/AndroidManifest.xml
       - name: Generate Android and Web launcher icons
         run: dart run flutter_launcher_icons
       - name: Verify launcher icon outputs
