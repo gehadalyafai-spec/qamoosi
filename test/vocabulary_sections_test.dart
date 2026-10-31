@@ -96,6 +96,12 @@ void main() {
     });
     await tester.pumpWidget(const QamoosiApp());
     await tester.pumpAndSettle();
+    // The home screen uses a lazy sliver. Build its catalog area first,
+    // exactly as a user does by scrolling down from the hero content.
+    final field = find.byKey(const Key('lesson_search_field'));
+    await tester.scrollUntilVisible(field, 200,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('vocabulary_section_list')), findsOneWidget);
     expect(find.byKey(const Key('section_programming')), findsOneWidget);
     expect(find.byKey(const Key('section_data_ai')), findsOneWidget);
