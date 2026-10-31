@@ -11,6 +11,7 @@ import 'features/learning/word_insight_details.dart';
 import 'features/daily/daily_learning_widgets.dart';
 import 'features/achievements/achievements_panel.dart';
 import 'features/path/learning_path_card.dart';
+import 'features/practice/practice_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -328,6 +329,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (mounted) await _load();
   }
 
+  Future<void> _openPractice() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const PracticePage()),
+    );
+  }
+
   Future<void> _openReview() async {
     final now = DateTime.now();
     final dueCards = [
@@ -526,6 +534,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ],
                                   )),
                                   Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                                ]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Material(
+                            color: const Color(0xFFE9F1FF),
+                            borderRadius: BorderRadius.circular(22),
+                            child: InkWell(
+                              key: const Key('open_practice'),
+                              borderRadius: BorderRadius.circular(22),
+                              onTap: _openPractice,
+                              child: const Padding(
+                                padding: EdgeInsets.all(19),
+                                child: Row(children: [
+                                  Icon(Icons.psychology_rounded,
+                                    color: Color(0xFF3565A8), size: 32),
+                                  SizedBox(width: 15),
+                                  Expanded(child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('طبّق ما تعلّمته',
+                                        style: TextStyle(
+                                          color: Color(0xFF101D32),
+                                          fontSize: 18, fontWeight: FontWeight.w800)),
+                                      SizedBox(height: 5),
+                                      Text('6 مواقف تفاعلية مع شرح الإجابات',
+                                        style: TextStyle(
+                                          color: Color(0xFF51647D), fontSize: 13)),
+                                    ],
+                                  )),
+                                  Icon(Icons.arrow_back_ios_new_rounded,
+                                    color: Color(0xFF3565A8), size: 17),
                                 ]),
                               ),
                             ),
