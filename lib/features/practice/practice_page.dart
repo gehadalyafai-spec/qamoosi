@@ -285,6 +285,18 @@ class _PracticePageState extends State<PracticePage> {
               style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
             ),
           ],
+          if (widget.reviewMistakes) ...[
+            const SizedBox(height: 9),
+            Text(
+              'مرات الخطأ السابقة: ${_mistakes.mistakesFor(question.id)}',
+              key: const Key('practice_mistake_priority'),
+              style: const TextStyle(
+                color: Color(0xFF6857CE),
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Expanded(
             child: ListView(
