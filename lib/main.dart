@@ -540,6 +540,45 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   /// Category challenges always cover the complete section, irrespective
   /// of temporary beginner/intermediate filters or search text.
+  /// Always use the entire category even when the visible lessons were
+  /// filtered by level or search. Only valid current catalog IDs count.
+  List<CardEntry> _allSectionCards(VocabularySectionSelection section) {
+    final titles = section.section.lessonTitles.toSet();
+    return [
+      for (final lesson in lessons)
+        if (titles.contains(lesson.title)) ...lesson.cards,
+    ];
+  }
+
+  SectionProgressSummary _sectionProgress(
+      VocabularySectionSelection section, WeeklyChallenge weekly) {
+    final ids = _allSectionCards(section).map((card) => card.id);
+    final now = DateTime.now();
+    return SectionProgressSummary.fromCardIds(
+      cardIds: ids,
+      knownIds: known,
+      dueIds: {
+        for (final entry in reviews.entries)
+          if (entry.value.isDue(now)) entry.key,
+      },
+      weeklyIds: weekly.cardIds,
+    );
+  }
+
+  Future<void> _reviewVocabularySection(
+      VocabularySectionSelection section) async {
+    final now = DateTime.now();
+    final due = [
+      for (final card in _allSectionCards(section))
+        if (reviews[card.id]?.isDue(now) ?? false) card,
+    ];
+    if (due.isEmpty) return;
+    await _openLesson(Lesson(
+      'مراجعات: ${section.section.title}',
+      due.take(6).toList(),
+    ));
+  }
+
   Future<void> _testVocabularySection(
       VocabularySectionSelection section) async {
     final byTitle = {for (final lesson in lessons) lesson.title: lesson};
@@ -1038,6 +1077,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               quizStatsOf: (section) =>
                                   sectionQuizStats[section.section.id] ??
                                   const SectionQuizStats(),
+                              sectionProgressOf: (section) =>
+                                  _sectionProgress(section, weeklyChallenge),
+                              onReviewSection: _reviewVocabularySection,
                               expandSearchResults:
                                   lessonQuery.trim().isNotEmpty,
                             ),
