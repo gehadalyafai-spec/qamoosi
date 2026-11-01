@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/section_quiz_stats.dart';
 
 import 'vocabulary_sections.dart';
 
@@ -13,6 +14,9 @@ class VocabularySectionsList extends StatelessWidget {
     required this.learnedOf,
     required this.totalOf,
     required this.onOpenLesson,
+    required this.onContinueSection,
+    required this.onTestSection,
+    required this.quizStatsOf,
     this.expandSearchResults = false,
   });
 
@@ -22,6 +26,9 @@ class VocabularySectionsList extends StatelessWidget {
   final int Function(int index) learnedOf;
   final int Function(int index) totalOf;
   final ValueChanged<int> onOpenLesson;
+  final Future<void> Function(VocabularySectionSelection) onContinueSection;
+  final Future<void> Function(VocabularySectionSelection) onTestSection;
+  final SectionQuizStats Function(VocabularySectionSelection) quizStatsOf;
   final bool expandSearchResults;
 
   @override
@@ -117,6 +124,76 @@ class VocabularySectionsList extends StatelessWidget {
                 ),
                 children: [
                   const Divider(height: 19, color: Color(0xFFEEEAF4)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 5, 0, 10),
+                    child: Builder(builder: (context) {
+                      final selected = sections[groupIndex];
+                      final total = selected.lessonIndices.fold<int>(
+                        0, (sum, i) => sum + totalOf(i),
+                      );
+                      final learned = selected.lessonIndices.fold<int>(
+                        0, (sum, i) => sum + learnedOf(i),
+                      );
+                      final toLearn = total - learned;
+                      final stats = quizStatsOf(selected);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                key: Key('section_continue_${selected.section.id}'),
+                                onPressed: toLearn <= 0
+                                    ? null
+                                    : () => onContinueSection(selected),
+                                icon: const Icon(Icons.school_rounded, size: 17),
+                                label: Text(toLearn <= 0
+                                    ? 'أكملت الكلمات'
+                                    : 'تعلّم ${toLearn > 6 ? 6 : toLearn} كلمات'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: navy,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 13),
+                                  textStyle: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                key: Key('section_quiz_${selected.section.id}'),
+                                onPressed: () => onTestSection(selected),
+                                icon: const Icon(Icons.quiz_outlined, size: 17),
+                                label: const Text('اختبار القسم'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: purple,
+                                  side: const BorderSide(
+                                    color: Color(0xFFD8D0F2)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 13),
+                                  textStyle: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                          ]),
+                          if (stats.attempts > 0) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'اختباراتك: ${stats.attempts} • '
+                              'آخر نتيجة: ${stats.lastScore}/6 • '
+                              'أفضل نتيجة: ${stats.bestScore}/6',
+                              key: Key('section_quiz_stats_${selected.section.id}'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: muted, fontSize: 12, height: 1.5),
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
+                  ),
                   for (final lessonIndex in sections[groupIndex].lessonIndices)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
