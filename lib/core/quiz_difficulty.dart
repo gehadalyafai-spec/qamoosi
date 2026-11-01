@@ -300,7 +300,9 @@ List<T> buildDifficultyQuizCards<T>({
   final pool = <T>[];
   for (final card in catalog) {
     final id = cardId(card);
-    if (id.isEmpty || !ids.add(id)) continue;
+    if (id.isEmpty || !ids.add(id)) {
+      continue;
+    }
     if (difficulty == QuizDifficulty.advanced &&
         !advancedCodeScenarios.containsKey(id)) continue;
     pool.add(card);
