@@ -1978,32 +1978,97 @@ class _QuizPageState extends State<QuizPage> {
                             controller: _choicesScrollController,
                             children: [
                               const SizedBox(height: 18),
-                              const Text('ما معنى الكلمة التالية؟',
-                                style: TextStyle(fontSize: 19, color: navy)),
+                              Text(
+                                widget.difficulty == QuizDifficulty.intermediate
+                                    ? 'اقرأ الموقف واختر المصطلح الإنجليزي المناسب'
+                                    : widget.difficulty == QuizDifficulty.advanced
+                                        ? 'اقرأ الكود ثم اختر المفهوم الصحيح'
+                                        : 'ما معنى الكلمة التالية؟',
+                                style: const TextStyle(
+                                  fontSize: 19, color: navy)),
                               const SizedBox(height: 19),
-                              Text(_cards[index].word,
-                                textDirection: TextDirection.ltr,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 36,
-                                  fontWeight: FontWeight.w800, color: navy)),
+                              if (_chooseEnglishWord)
+                                Container(
+                                  key: const Key('quiz_scenario'),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFEAFB),
+                                    borderRadius: BorderRadius.circular(17),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      if (widget.difficulty ==
+                                          QuizDifficulty.advanced) ...[
+                                        Text(
+                                          _questionText,
+                                          textDirection: TextDirection.ltr,
+                                          textAlign: TextAlign.left,
+                                          style: const TextStyle(
+                                            fontFamily: 'monospace',
+                                            fontSize: 14, color: navy,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 11),
+                                        Text(
+                                          advancedCodeScenarios[_cards[index].id]
+                                                  ?.question ??
+                                              'ما المصطلح المناسب لهذا المثال؟',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                            height: 1.55,
+                                            color: navy,
+                                          ),
+                                        ),
+                                      ] else
+                                        Text(
+                                          _questionText,
+                                          key: const Key('quiz_practical_scenario'),
+                                          style: const TextStyle(
+                                            fontSize: 16, color: navy,
+                                            height: 1.65,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Text(_cards[index].word,
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 36,
+                                    fontWeight: FontWeight.w800, color: navy)),
                               const SizedBox(height: 7),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  WordPronunciationButton(
-                                    key: const Key('quiz_speak_word'),
-                                    word: _cards[index].word,
-                                    speaker: _speaker,
-                                  ),
-                                  const SizedBox(width: 9),
-                                  WordPronunciationButton(
-                                    key: const Key('quiz_speak_slow'),
-                                    word: _cards[index].word,
-                                    speaker: _speaker,
-                                    slowly: true,
-                                  ),
-                                ],
-                              ),
+                              if (!_chooseEnglishWord || selected != null)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (_chooseEnglishWord)
+                                      Text(
+                                        _cards[index].word,
+                                        key: const Key('quiz_revealed_word'),
+                                        textDirection: TextDirection.ltr,
+                                        style: const TextStyle(
+                                          color: navy, fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    WordPronunciationButton(
+                                      key: const Key('quiz_speak_word'),
+                                      word: _cards[index].word,
+                                      speaker: _speaker,
+                                    ),
+                                    const SizedBox(width: 9),
+                                    WordPronunciationButton(
+                                      key: const Key('quiz_speak_slow'),
+                                      word: _cards[index].word,
+                                      speaker: _speaker,
+                                      slowly: true,
+                                    ),
+                                  ],
+                                ),
                               const SizedBox(height: 24),
                               for (var i = 0; i < choices.length; i++) ...[
                                 OutlinedButton(
@@ -2012,7 +2077,7 @@ class _QuizPageState extends State<QuizPage> {
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.all(18),
                                     backgroundColor: selected != null &&
-                                            choices[i] == _cards[index].translation
+                                            choices[i] == _correctAnswer
                                         ? const Color(0xFFE2F5E8)
                                         : selected == i
                                             ? const Color(0xFFFFE4DE)
@@ -2025,7 +2090,7 @@ class _QuizPageState extends State<QuizPage> {
                                 const SizedBox(height: 10),
                               ],
                               if (selected != null &&
-                                  choices[selected!] != _cards[index].translation) ...[
+                                  choices[selected!] != _correctAnswer) ...[
                                 const SizedBox(height: 10),
                                 Container(
                                   key: const Key('quiz_wrong_feedback'),
@@ -2042,7 +2107,9 @@ class _QuizPageState extends State<QuizPage> {
                                           color: Color(0xFFB94824),
                                           fontWeight: FontWeight.w800)),
                                       const SizedBox(height: 8),
-                                      Text(_cards[index].translation,
+                                      Text(_chooseEnglishWord
+                                          ? '${_cards[index].word} — ${_cards[index].translation}'
+                                          : _cards[index].translation,
                                         style: const TextStyle(
                                           color: navy,
                                           fontSize: 19,
@@ -2071,7 +2138,7 @@ class _QuizPageState extends State<QuizPage> {
                           const SizedBox(height: 9),
                         ],
                         if (selected != null &&
-                            choices[selected!] == _cards[index].translation &&
+                            choices[selected!] == _correctAnswer &&
                             _saveError == null)
                           const Padding(
                             padding: EdgeInsets.only(bottom: 12),
@@ -2089,7 +2156,7 @@ class _QuizPageState extends State<QuizPage> {
                             ),
                           ),
                         if (selected != null &&
-                            (choices[selected!] != _cards[index].translation ||
+                            (choices[selected!] != _correctAnswer ||
                                 _saveError != null))
                           FilledButton(
                             key: const Key('quiz_next'),
