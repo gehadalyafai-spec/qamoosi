@@ -192,7 +192,7 @@ void main() {
     await tester.tap(find.text('اختبار جديد'));
     await tester.pumpAndSettle();
     expect(find.text('السؤال 1 من 6'), findsOneWidget);
-    expect(find.textContaining('const maxCards'), findsOneWidget);
+    expect(find.textContaining('final amount = 42;'), findsOneWidget);
   });
 
   testWidgets('picker offers 3 difficulties and reloads latest score',
