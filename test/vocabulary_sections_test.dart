@@ -130,4 +130,88 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getStringList('known_cards'), ['variable', 'extra_cpu']);
   });
+
+  testWidgets('continue section shows only unmastered cards and saves progress',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1250));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable'],
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    final group = find.byKey(const Key('section_expand_programming_all'));
+    await tester.scrollUntilVisible(group, 200,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(tester.element(group), alignment: 0.15);
+    await tester.pumpAndSettle();
+    await tester.tap(group);
+    await tester.pumpAndSettle();
+
+    final continueButton = find.byKey(
+      const Key('section_continue_programming'));
+    await tester.scrollUntilVisible(continueButton, 150,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(continueButton), alignment: 0.25);
+    await tester.pumpAndSettle();
+    expect(find.text('تعلّم 6 كلمات'), findsOneWidget);
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('تعلّم: البرمجة وتطوير التطبيقات'), findsOneWidget);
+    expect(find.text('Constant'), findsOneWidget);
+    expect(find.text('البطاقة 1 من 6'), findsOneWidget);
+    await tester.tap(find.text('عرفتها'));
+    await tester.pumpAndSettle();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('known_cards'), containsAll(['variable', 'constant']));
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    final progress = find.byKey(const Key('section_progress_programming'));
+    await tester.scrollUntilVisible(progress, 150,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2 من 70 كلمة'), findsOneWidget);
+  });
+
+  testWidgets('section quiz action opens its topic and shows previous score',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1250));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({
+      'section_quiz_stats_v1':
+          '{"programming":{"attempts":2,"lastScore":4,"bestScore":5}}',
+      'quiz_attempts': 9,
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    final group = find.byKey(const Key('section_expand_programming_all'));
+    await tester.scrollUntilVisible(group, 200,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(group);
+    await tester.pumpAndSettle();
+
+    final quizButton = find.byKey(const Key('section_quiz_programming'));
+    await tester.scrollUntilVisible(quizButton, 150,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.text('اختباراتك: 2 • آخر نتيجة: 4/6 • أفضل نتيجة: 5/6'),
+      findsOneWidget);
+    await Scrollable.ensureVisible(
+      tester.element(quizButton), alignment: 0.3);
+    await tester.pumpAndSettle();
+    await tester.tap(quizButton);
+    await tester.pumpAndSettle();
+    expect(find.text('اختبار: البرمجة وتطوير التطبيقات'), findsOneWidget);
+    expect(find.text('السؤال 1 من 6'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('quiz_attempts'), 9);
+  });
 }
