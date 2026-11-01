@@ -1545,7 +1545,8 @@ class QuizPage extends StatefulWidget {
   const QuizPage({super.key, this.speaker})
       : sectionId = null,
         sectionTitle = null,
-        sectionLessons = null;
+        sectionLessons = null,
+        adaptive = false;
 
   /// Runs on a fixed topic; global quiz statistics are not modified.
   const QuizPage.forSection({
@@ -1554,12 +1555,20 @@ class QuizPage extends StatefulWidget {
     required this.sectionTitle,
     required this.sectionLessons,
     this.speaker,
-  });
+  }) : adaptive = false;
+
+  /// Reinforcement mode selects past weak words alongside rotating new ones.
+  const QuizPage.adaptive({super.key, this.speaker})
+      : sectionId = null,
+        sectionTitle = null,
+        sectionLessons = null,
+        adaptive = true;
 
   final WordSpeaker? speaker;
   final String? sectionId;
   final String? sectionTitle;
   final List<Lesson>? sectionLessons;
+  final bool adaptive;
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -1567,9 +1576,13 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   static const Duration correctAnswerDelay = Duration(milliseconds: 700);
+  static const String adaptiveStatsId = 'adaptive_review';
   Timer? _autoAdvanceTimer;
   final ScrollController _choicesScrollController = ScrollController(keepScrollOffset: false);
   final List<QuizMistake> _mistakes = [];
+  final Map<String, bool> _answers = {};
+  QuizWeakWords _weakWords = const QuizWeakWords({});
+  bool _statsSaved = false;
   late final WordSpeaker _speaker;
 
   static final List<CardEntry> _allCards = [
@@ -1607,21 +1620,35 @@ class _QuizPageState extends State<QuizPage> {
     unawaited(_speaker.stop().catchError((Object _) {}));
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    final scopedId = widget.sectionId;
+    final scopedId = widget.adaptive
+        ? adaptiveStatsId : widget.sectionId;
     final stats = scopedId == null
         ? QuizStats.fromPreferences(prefs)
         : _scopedStatsAsQuizStats(
             SectionQuizStats.fromPreferences(prefs, scopedId));
-    final cards = scopedId == null
-        ? buildQuizCards(stats.attempts)
-        : buildSectionQuizCards<CardEntry>(
-            [for (final lesson in widget.sectionLessons ?? const <Lesson>[])
-              lesson.cards],
-            stats.attempts,
-          );
+    final weaknesses = QuizWeakWords.fromPreferences(
+      prefs, validIds: {for (final card in _allCards) card.id},
+    );
+    final cards = widget.adaptive
+        ? buildAdaptiveQuizCards<CardEntry>(
+            catalog: _allCards,
+            cardId: (card) => card.id,
+            weaknesses: weaknesses,
+            completedAttempts: stats.attempts,
+          )
+        : scopedId == null
+            ? buildQuizCards(stats.attempts)
+            : buildSectionQuizCards<CardEntry>(
+                [for (final lesson in widget.sectionLessons ?? const <Lesson>[])
+                  lesson.cards],
+                stats.attempts,
+              );
     setState(() {
       _stats = stats;
       _cards = cards;
+      _weakWords = weaknesses;
+      _statsSaved = false;
+      _answers.clear();
       _mistakes.clear();
       index = 0;
       correct = 0;
@@ -1669,6 +1696,7 @@ class _QuizPageState extends State<QuizPage> {
     final answeredIndex = index;
     setState(() {
       selected = choice;
+      _answers[_cards[index].id] = isCorrect;
       if (isCorrect) {
         correct++;
       } else {
@@ -1733,15 +1761,27 @@ class _QuizPageState extends State<QuizPage> {
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      final scopedId = widget.sectionId;
-      final updated = scopedId == null
-          ? await QuizStats.record(prefs, correct)
-          : _scopedStatsAsQuizStats(
-              await SectionQuizStats.record(prefs, scopedId, correct),
-            );
+      final scopedId = widget.adaptive
+          ? adaptiveStatsId : widget.sectionId;
+      if (!_statsSaved) {
+        final updated = scopedId == null
+            ? await QuizStats.record(prefs, correct)
+            : _scopedStatsAsQuizStats(
+                await SectionQuizStats.record(prefs, scopedId, correct),
+              );
+        _stats = updated;
+        // A retry after a weak-word storage error must not count this
+        // finished attempt twice in the original or section statistics.
+        _statsSaved = true;
+      }
+      final savedWeaknesses = await QuizWeakWords.recordCompletedQuiz(
+        prefs,
+        _answers,
+        validIds: {for (final card in _allCards) card.id},
+      );
       if (!mounted) return;
       setState(() {
-        _stats = updated;
+        _weakWords = savedWeaknesses;
         _finished = true;
       });
     } catch (_) {
@@ -1775,9 +1815,11 @@ class _QuizPageState extends State<QuizPage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.sectionTitle == null
-              ? 'اختبار الكلمات'
-              : 'اختبار: ${widget.sectionTitle}'),
+          title: Text(widget.adaptive
+              ? 'اختبار تقوية الكلمات'
+              : widget.sectionTitle == null
+                  ? 'اختبار الكلمات'
+                  : 'اختبار: ${widget.sectionTitle}'),
         ),
         body: SafeArea(
           child: !_ready
@@ -1797,6 +1839,14 @@ class _QuizPageState extends State<QuizPage> {
                           const SizedBox(height: 10),
                           Text('أفضل نتيجة: ${_stats.bestScore} من ${_cards.length}',
                             style: const TextStyle(color: Color(0xFF667085))),
+                          const SizedBox(height: 10),
+                          Text(
+                            'كلمات تحتاج تقوية الآن: ${_weakWords.count}',
+                            key: const Key('quiz_weak_words_after'),
+                            style: const TextStyle(
+                              color: Color(0xFF6857CE),
+                              fontWeight: FontWeight.w700),
+                          ),
                           const SizedBox(height: 13),
                           if (_mistakes.isEmpty)
                             const Text(
@@ -1836,6 +1886,19 @@ class _QuizPageState extends State<QuizPage> {
                             label: const Text('اختبار جديد'),
                           ),
                           const SizedBox(height: 8),
+                          if (!widget.adaptive && _weakWords.count > 0) ...[
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              key: const Key('quiz_start_adaptive'),
+                              onPressed: () => Navigator.push<void>(
+                                context,
+                                MaterialPageRoute(builder: (_) =>
+                                    const QuizPage.adaptive()),
+                              ),
+                              icon: const Icon(Icons.track_changes_rounded),
+                              label: const Text('اختبار تقوية الكلمات الصعبة'),
+                            ),
+                          ],
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             child: Text(widget.sectionId == null
