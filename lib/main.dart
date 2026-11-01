@@ -9,6 +9,7 @@ import 'core/quiz_stats.dart';
 import 'core/section_quiz_scheduler.dart';
 import 'core/section_quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
+import 'core/weekly_challenge.dart';
 import 'core/favorite_words_repository.dart';
 import 'data/word_insights.dart';
 import 'data/vocabulary_expansion.dart';
@@ -19,6 +20,7 @@ import 'features/achievements/achievements_panel.dart';
 import 'features/achievements/learning_overview.dart';
 import 'features/catalog/vocabulary_sections.dart';
 import 'features/catalog/vocabulary_sections_list.dart';
+import 'features/challenges/weekly_challenge_card.dart';
 import 'features/path/learning_path_card.dart';
 import 'features/plan/smart_study_plan_page.dart';
 import 'features/pronunciation/word_speaker.dart';
@@ -281,6 +283,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Map<String, SectionQuizStats> sectionQuizStats = {};
   PracticeStats practiceStats = const PracticeStats();
   DailyLearningProgress dailyProgress = DailyLearningProgress();
+  int weeklyGoal = WeeklyChallenge.defaultGoal;
   int pendingPracticeMistakes = 0;
   LearningLevel? selectedLevel;
   String lessonQuery = '';
@@ -342,6 +345,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         decodedDaily = null;
       }
       dailyProgress = DailyLearningProgress.fromJson(decodedDaily);
+      final storedWeeklyGoal = prefs.getInt(WeeklyChallenge.storageKey);
+      weeklyGoal = WeeklyChallenge.allowedGoals.contains(storedWeeklyGoal)
+          ? storedWeeklyGoal!
+          : WeeklyChallenge.defaultGoal;
     });
   }
 
@@ -383,6 +390,55 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       DailyLearningProgress.storageKey,
       jsonEncode(dailyProgress.toJson()),
     );
+  }
+
+  WeeklyChallenge _currentWeeklyChallenge() => WeeklyChallenge.build(
+    dailyProgress: dailyProgress,
+    validCardIds: {
+      for (final lesson in lessons)
+        for (final card in lesson.cards) card.id,
+    },
+    now: DateTime.now(),
+    goal: weeklyGoal,
+  );
+
+  /// Prioritize overdue, unpractised cards, then unfamiliar words.
+  List<CardEntry> _weeklyStudyCards(WeeklyChallenge challenge) {
+    final result = <CardEntry>[];
+    final added = <String>{};
+    final now = DateTime.now();
+    for (final lesson in lessons) {
+      for (final card in lesson.cards) {
+        if (!challenge.cardIds.contains(card.id) &&
+            (reviews[card.id]?.isDue(now) ?? false) &&
+            added.add(card.id)) {
+          result.add(card);
+        }
+      }
+    }
+    for (final lesson in lessons) {
+      for (final card in lesson.cards) {
+        if (!challenge.cardIds.contains(card.id) &&
+            !known.contains(card.id) &&
+            added.add(card.id)) {
+          result.add(card);
+        }
+      }
+    }
+    return result.take(6).toList();
+  }
+
+  Future<void> _changeWeeklyGoal(int goal) async {
+    if (!WeeklyChallenge.allowedGoals.contains(goal)) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(WeeklyChallenge.storageKey, goal);
+    if (mounted) setState(() => weeklyGoal = goal);
+  }
+
+  Future<void> _startWeeklyChallenge() async {
+    final cards = _weeklyStudyCards(_currentWeeklyChallenge());
+    if (cards.isEmpty) return;
+    await _openLesson(Lesson('جلسة التحدي الأسبوعي', cards));
   }
 
   Future<void> _openSearch() async {
@@ -553,6 +609,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final due = reviews.entries.where((r) => allIds.contains(r.key) && r.value.isDue(DateTime.now())).length;
     final recommendedLesson = recommendNextLesson(lessons, known);
     final smartPlan = _currentSmartStudyPlan();
+    final weeklyChallenge = _currentWeeklyChallenge();
     final visibleSections = selectVocabularySections(
       lessonTitles: [for (final lesson in lessons) lesson.title],
       matchesLevel: (index) =>
@@ -675,6 +732,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             progress: dailyProgress,
                             now: DateTime.now(),
                             onGoalChanged: _changeDailyGoal,
+                          ),
+                          const SizedBox(height: 16),
+                          WeeklyChallengeCard(
+                            challenge: weeklyChallenge,
+                            onGoalChanged: _changeWeeklyGoal,
+                            onStart: _startWeeklyChallenge,
+                            canStart: _weeklyStudyCards(weeklyChallenge)
+                                .isNotEmpty,
                           ),
                           const SizedBox(height: 16),
                           Material(
