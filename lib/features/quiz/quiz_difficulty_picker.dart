@@ -7,9 +7,15 @@ import '../../core/section_quiz_stats.dart';
 /// One short, approachable entry point instead of three more home cards.
 /// Difficulty results are saved separately from legacy and topic quizzes.
 class QuizDifficultyPicker extends StatefulWidget {
-  const QuizDifficultyPicker({super.key, required this.onStart});
+  const QuizDifficultyPicker({
+    super.key,
+    required this.onStart,
+    this.onCodeLab,
+  });
 
   final Future<void> Function(QuizDifficulty) onStart;
+  /// Optional for backward compatibility with existing challenges/tests.
+  final Future<void> Function()? onCodeLab;
 
   @override
   State<QuizDifficultyPicker> createState() => _QuizDifficultyPickerState();
@@ -36,6 +42,20 @@ class _QuizDifficultyPickerState extends State<QuizDifficultyPicker> {
     setState(() => opening = true);
     try {
       await widget.onStart(difficulty);
+    } finally {
+      if (mounted) {
+        setState(() => opening = false);
+        await _refresh();
+      }
+    }
+  }
+
+  Future<void> _openCodeLab() async {
+    final callback = widget.onCodeLab;
+    if (opening || callback == null) return;
+    setState(() => opening = true);
+    try {
+      await callback();
     } finally {
       if (mounted) {
         setState(() => opening = false);
@@ -136,7 +156,66 @@ class _QuizDifficultyPickerState extends State<QuizDifficultyPicker> {
                 }),
                 const SizedBox(height: 12),
               ],
-              const SizedBox(height: 6),
+              if (widget.onCodeLab != null) ...[
+                const SizedBox(height: 6),
+                const Divider(color: Color(0xFFE4E0F0)),
+                const SizedBox(height: 14),
+                const Text('طبّق ما تعلمته',
+                  style: TextStyle(
+                    color: navy, fontSize: 20,
+                    fontWeight: FontWeight.w900)),
+                const SizedBox(height: 12),
+                Material(
+                  color: const Color(0xFF16243C),
+                  clipBehavior: Clip.antiAlias,
+                  borderRadius: BorderRadius.circular(22),
+                  child: InkWell(
+                    key: const Key('open_code_lab'),
+                    onTap: opening ? null : _openCodeLab,
+                    child: Padding(
+                      padding: const EdgeInsets.all(17),
+                      child: Row(children: [
+                        Container(
+                          height: 54, width: 54,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF33456B),
+                            borderRadius: BorderRadius.circular(16)),
+                          child: const Icon(Icons.terminal_rounded,
+                            color: Colors.white, size: 29),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('مختبر الكود التفاعلي',
+                              style: TextStyle(
+                                color: Colors.white, fontSize: 18,
+                                fontWeight: FontWeight.w900)),
+                            const SizedBox(height: 5),
+                            const Text('أكمل سطرًا ناقصًا ورتّب خطوات البرمجة',
+                              style: TextStyle(
+                                color: Color(0xFFD5DDF0),
+                                fontSize: 12, height: 1.5)),
+                            if ((results['code_lab']?.attempts ?? 0) > 0) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'محاولات ${results['code_lab']!.attempts} • '
+                                'أفضل درجة ${results['code_lab']!.bestScore}/6',
+                                key: const Key('code_lab_picker_stats'),
+                                style: const TextStyle(
+                                  color: Color(0xFFD4C8FF),
+                                  fontWeight: FontWeight.w700, fontSize: 12)),
+                            ],
+                          ],
+                        )),
+                        const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 16),
+                      ]),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
               const Text(
                 'في المتوسط والمتقدم يظهر نطق المصطلح بعد الإجابة، '
                 'حتى يكون السؤال اختبار فهم حقيقيًا.',
