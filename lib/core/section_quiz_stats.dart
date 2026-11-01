@@ -20,7 +20,7 @@ class SectionQuizStats {
   static int _nonnegative(Object? source) =>
       source is int && source > 0 ? source : 0;
 
-  static int _score(Object? source) => _nonnegative(source).clamp(0, 6);
+  static int _score(Object? source) => _nonnegative(source).clamp(0, 6).toInt();
 
   factory SectionQuizStats.fromJson(Object? raw) {
     if (raw is! Map) return const SectionQuizStats();
@@ -72,7 +72,7 @@ class SectionQuizStats {
     }
     final all = allFromPreferences(prefs);
     final previous = all[sectionId] ?? const SectionQuizStats();
-    final score = correct.clamp(0, 6);
+    final score = correct.clamp(0, 6).toInt();
     final updated = SectionQuizStats(
       attempts: previous.attempts + 1,
       lastScore: score,
