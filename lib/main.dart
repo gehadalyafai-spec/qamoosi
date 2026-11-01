@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'core/review_scheduler.dart';
 import 'core/smart_study_plan.dart';
 import 'core/quiz_stats.dart';
+import 'core/quiz_weak_words.dart';
 import 'core/section_quiz_scheduler.dart';
 import 'core/section_quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
@@ -280,6 +281,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Set<String> known = {};
   Map<String, ReviewState> reviews = {};
   QuizStats quizStats = const QuizStats();
+  QuizWeakWords weakQuizWords = const QuizWeakWords({});
   Map<String, SectionQuizStats> sectionQuizStats = {};
   PracticeStats practiceStats = const PracticeStats();
   DailyLearningProgress dailyProgress = DailyLearningProgress();
@@ -333,6 +335,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       known = prefs.getStringList('known_cards')?.toSet() ?? {};
       reviews = restored;
       quizStats = QuizStats.fromPreferences(prefs);
+      weakQuizWords = QuizWeakWords.fromPreferences(prefs,
+        validIds: {for (final lesson in lessons)
+          for (final card in lesson.cards) card.id});
       sectionQuizStats = SectionQuizStats.allFromPreferences(prefs);
       practiceStats = PracticeStats.fromPreferences(prefs);
       pendingPracticeMistakes =
@@ -452,6 +457,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     await Navigator.push<void>(
       context,
       MaterialPageRoute(builder: (_) => const QuizPage()),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _openAdaptiveQuiz() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const QuizPage.adaptive()),
     );
     if (mounted) await _load();
   }
@@ -897,6 +910,45 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
+                          if (weakQuizWords.count > 0) ...[
+                            const SizedBox(height: 14),
+                            Material(
+                              color: const Color(0xFFF0EAFE),
+                              borderRadius: BorderRadius.circular(22),
+                              child: InkWell(
+                                key: const Key('open_adaptive_quiz'),
+                                onTap: _openAdaptiveQuiz,
+                                borderRadius: BorderRadius.circular(22),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(18),
+                                  child: Row(children: [
+                                    const Icon(Icons.track_changes_rounded,
+                                      color: Color(0xFF6857CE), size: 29),
+                                    const SizedBox(width: 14),
+                                    Expanded(child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('اختبار تقوية الكلمات',
+                                          style: TextStyle(color: Color(0xFF101D32),
+                                            fontSize: 17, fontWeight: FontWeight.w800)),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          'كلمات تحتاج تقوية: ${weakQuizWords.count} • '
+                                          '6 أسئلة تركز على أخطائك',
+                                          key: const Key('quiz_weak_words_count'),
+                                          style: const TextStyle(
+                                            color: Color(0xFF65547F),
+                                            fontSize: 13),
+                                        ),
+                                      ],
+                                    )),
+                                    const Icon(Icons.arrow_back_ios_new_rounded,
+                                      color: Color(0xFF6857CE), size: 17),
+                                  ]),
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 14),
                           Material(
                             color: const Color(0xFFE9F1FF),
