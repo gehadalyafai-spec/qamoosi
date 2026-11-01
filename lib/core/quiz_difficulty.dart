@@ -304,7 +304,9 @@ List<T> buildDifficultyQuizCards<T>({
       continue;
     }
     if (difficulty == QuizDifficulty.advanced &&
-        !advancedCodeScenarios.containsKey(id)) continue;
+        !advancedCodeScenarios.containsKey(id)) {
+      continue;
+    }
     pool.add(card);
   }
   if (pool.isEmpty) return <T>[];
