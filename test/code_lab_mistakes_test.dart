@@ -99,10 +99,16 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('open_code_lab_mistakes')), findsOneWidget);
+    // The review card is below the three difficulty levels; ListView builds
+    // its children lazily, so scroll before looking for the card.
+    final review = find.byKey(const Key('open_code_lab_mistakes'));
+    await tester.scrollUntilVisible(
+      review, 180, scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(review, findsOneWidget);
     expect(find.text('راجع أخطاء مختبر الكود (2)'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('open_code_lab_mistakes')));
-    await tester.tap(find.byKey(const Key('open_code_lab_mistakes')));
+    await tester.ensureVisible(review);
+    await tester.tap(review);
     await tester.pumpAndSettle();
     expect(opened, isTrue);
   });
