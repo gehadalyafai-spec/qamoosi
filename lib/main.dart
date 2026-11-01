@@ -7,6 +7,7 @@ import 'core/review_scheduler.dart';
 import 'core/smart_study_plan.dart';
 import 'core/quiz_stats.dart';
 import 'core/quiz_weak_words.dart';
+import 'core/quiz_difficulty.dart';
 import 'core/section_quiz_scheduler.dart';
 import 'core/section_quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
@@ -1546,6 +1547,7 @@ class QuizPage extends StatefulWidget {
       : sectionId = null,
         sectionTitle = null,
         sectionLessons = null,
+        difficulty = null,
         adaptive = false;
 
   /// Runs on a fixed topic; global quiz statistics are not modified.
@@ -1555,19 +1557,32 @@ class QuizPage extends StatefulWidget {
     required this.sectionTitle,
     required this.sectionLessons,
     this.speaker,
-  }) : adaptive = false;
+  }) : adaptive = false,
+       difficulty = null;
 
   /// Reinforcement mode selects past weak words alongside rotating new ones.
   const QuizPage.adaptive({super.key, this.speaker})
       : sectionId = null,
         sectionTitle = null,
         sectionLessons = null,
+        difficulty = null,
         adaptive = true;
+
+  /// Focus on translations, practical applications, or actual code reading.
+  const QuizPage.forDifficulty({
+    super.key,
+    required this.difficulty,
+    this.speaker,
+  }) : sectionId = null,
+       sectionTitle = null,
+       sectionLessons = null,
+       adaptive = false;
 
   final WordSpeaker? speaker;
   final String? sectionId;
   final String? sectionTitle;
   final List<Lesson>? sectionLessons;
+  final QuizDifficulty? difficulty;
   final bool adaptive;
 
   @override
@@ -1620,8 +1635,8 @@ class _QuizPageState extends State<QuizPage> {
     unawaited(_speaker.stop().catchError((Object _) {}));
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    final scopedId = widget.adaptive
-        ? adaptiveStatsId : widget.sectionId;
+    final scopedId = widget.difficulty?.storageId ??
+        (widget.adaptive ? adaptiveStatsId : widget.sectionId);
     final stats = scopedId == null
         ? QuizStats.fromPreferences(prefs)
         : _scopedStatsAsQuizStats(
@@ -1629,20 +1644,28 @@ class _QuizPageState extends State<QuizPage> {
     final weaknesses = QuizWeakWords.fromPreferences(
       prefs, validIds: {for (final card in _allCards) card.id},
     );
-    final cards = widget.adaptive
-        ? buildAdaptiveQuizCards<CardEntry>(
+    final difficulty = widget.difficulty;
+    final cards = difficulty != null
+        ? buildDifficultyQuizCards<CardEntry>(
             catalog: _allCards,
             cardId: (card) => card.id,
-            weaknesses: weaknesses,
+            difficulty: difficulty,
             completedAttempts: stats.attempts,
           )
-        : scopedId == null
-            ? buildQuizCards(stats.attempts)
-            : buildSectionQuizCards<CardEntry>(
-                [for (final lesson in widget.sectionLessons ?? const <Lesson>[])
-                  lesson.cards],
-                stats.attempts,
-              );
+        : widget.adaptive
+            ? buildAdaptiveQuizCards<CardEntry>(
+                catalog: _allCards,
+                cardId: (card) => card.id,
+                weaknesses: weaknesses,
+                completedAttempts: stats.attempts,
+              )
+            : scopedId == null
+                ? buildQuizCards(stats.attempts)
+                : buildSectionQuizCards<CardEntry>(
+                    [for (final lesson in widget.sectionLessons ??
+                        const <Lesson>[]) lesson.cards],
+                    stats.attempts,
+                  );
     setState(() {
       _stats = stats;
       _cards = cards;
@@ -1667,20 +1690,46 @@ class _QuizPageState extends State<QuizPage> {
         bestScore: value.bestScore,
       );
 
+  bool get _chooseEnglishWord =>
+      widget.difficulty == QuizDifficulty.intermediate ||
+      widget.difficulty == QuizDifficulty.advanced;
+
+  String get _correctAnswer =>
+      _chooseEnglishWord ? _cards[index].word : _cards[index].translation;
+
+  String get _questionText {
+    final card = _cards[index];
+    final difficulty = widget.difficulty;
+    if (difficulty == QuizDifficulty.intermediate) {
+      final note = wordInsightFor(card.id)?.projectUse ?? card.example;
+      return maskAnswerTerm(note, card.word);
+    }
+    if (difficulty == QuizDifficulty.advanced) {
+      return advancedCodeScenarios[card.id]?.code ?? card.example;
+    }
+    return card.word;
+  }
+
   List<String> get options {
     final current = _cards[index];
-    final questionPool = widget.sectionLessons == null
-        ? _allCards
-        : [
-            for (final lesson in widget.sectionLessons!)
-              ...lesson.cards,
-          ];
+    final questionPool = widget.difficulty == QuizDifficulty.advanced
+        ? [for (final card in _allCards)
+            if (advancedCodeScenarios.containsKey(card.id)) card]
+        : widget.sectionLessons == null
+            ? _allCards
+            : [
+                for (final lesson in widget.sectionLessons!)
+                  ...lesson.cards,
+              ];
+    final correctAnswer =
+        _chooseEnglishWord ? current.word : current.translation;
     final others = questionPool
-        .where((card) => card.id != current.id && card.translation != current.translation)
-        .map((card) => card.translation)
+        .where((card) => card.id != current.id)
+        .map((card) => _chooseEnglishWord ? card.word : card.translation)
+        .where((answer) => answer != correctAnswer)
         .toSet()
         .toList();
-    final choices = <String>[current.translation];
+    final choices = <String>[correctAnswer];
     for (var offset = 0; choices.length < 4 && offset < others.length; offset++) {
       choices.add(others[(index * 5 + offset) % others.length]);
     }
@@ -1692,7 +1741,7 @@ class _QuizPageState extends State<QuizPage> {
     if (selected != null || _saving || _finished) return;
     final choices = options;
     if (choice < 0 || choice >= choices.length) return;
-    final isCorrect = choices[choice] == _cards[index].translation;
+    final isCorrect = choices[choice] == _correctAnswer;
     final answeredIndex = index;
     setState(() {
       selected = choice;
@@ -1706,7 +1755,9 @@ class _QuizPageState extends State<QuizPage> {
           word: card.word,
           pronunciation: card.pronunciation,
           selectedTranslation: choices[choice],
-          correctTranslation: card.translation,
+          correctTranslation: _chooseEnglishWord
+              ? '${card.word} — ${card.translation}'
+              : card.translation,
           example: card.example,
           explanation: insight?.explanation ?? card.translation,
           projectUse: insight?.projectUse ?? '',
@@ -1761,8 +1812,8 @@ class _QuizPageState extends State<QuizPage> {
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      final scopedId = widget.adaptive
-          ? adaptiveStatsId : widget.sectionId;
+      final scopedId = widget.difficulty?.storageId ??
+          (widget.adaptive ? adaptiveStatsId : widget.sectionId);
       if (!_statsSaved) {
         final updated = scopedId == null
             ? await QuizStats.record(prefs, correct)
@@ -1815,11 +1866,13 @@ class _QuizPageState extends State<QuizPage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.adaptive
-              ? 'اختبار تقوية الكلمات'
-              : widget.sectionTitle == null
-                  ? 'اختبار الكلمات'
-                  : 'اختبار: ${widget.sectionTitle}'),
+          title: Text(widget.difficulty != null
+              ? 'تحدي ${widget.difficulty!.label}'
+              : widget.adaptive
+                  ? 'اختبار تقوية الكلمات'
+                  : widget.sectionTitle == null
+                      ? 'اختبار الكلمات'
+                      : 'اختبار: ${widget.sectionTitle}'),
         ),
         body: SafeArea(
           child: !_ready
