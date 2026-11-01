@@ -89,6 +89,41 @@ const vocabularySections = <VocabularySection>[
   ),
 ];
 
+/// Derived, read-only summary of a whole section (unaffected by temporary
+/// level or search filters). Counts only catalog IDs, never retired cards.
+class SectionProgressSummary {
+  const SectionProgressSummary({
+    required this.total,
+    required this.mastered,
+    required this.dueReviews,
+    required this.practisedThisWeek,
+  });
+
+  final int total;
+  final int mastered;
+  final int dueReviews;
+  final int practisedThisWeek;
+
+  double get masteryFraction =>
+      total == 0 ? 0 : (mastered / total).clamp(0.0, 1.0).toDouble();
+  int get masteryPercent => (masteryFraction * 100).round();
+
+  factory SectionProgressSummary.fromCardIds({
+    required Iterable<String> cardIds,
+    required Set<String> knownIds,
+    required Set<String> dueIds,
+    required Set<String> weeklyIds,
+  }) {
+    final ids = cardIds.where((id) => id.isNotEmpty).toSet();
+    return SectionProgressSummary(
+      total: ids.length,
+      mastered: ids.intersection(knownIds).length,
+      dueReviews: ids.intersection(dueIds).length,
+      practisedThisWeek: ids.intersection(weeklyIds).length,
+    );
+  }
+}
+
 class VocabularySectionSelection {
   const VocabularySectionSelection({
     required this.section,
