@@ -253,4 +253,26 @@ void main() {
     expect(find.text('مختبر الكود'), findsOneWidget);
     expect(find.text('التمرين 1 من 6'), findsOneWidget);
   });
+
+  testWidgets('completed code lab stores wrong tasks for separate review',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MaterialApp(home: CodeLabPage()));
+    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.byKey(const Key('code_option_1')));
+    await _tapVisible(tester, find.byKey(const Key('code_next')));
+    for (final task in buildCodeLabRound(completedAttempts: 0).skip(1)) {
+      await _answerCorrectly(tester, task);
+    }
+    expect(find.text('اكتملت جلسة مختبر الكود'), findsOneWidget);
+    expect(find.text('تمارين تحتاج مراجعة: 1'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('code_lab_mistakes_v1'), ['dart_variable']);
+    expect(SectionQuizStats.fromPreferences(
+      prefs, CodeLabPage.statsId).attempts, 1);
+    expect(SectionQuizStats.fromPreferences(
+      prefs, CodeLabPage.statsId).lastScore, 5);
+  });
 }

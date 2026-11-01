@@ -3,16 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/code_lab_mistakes.dart';
 import '../../core/section_quiz_stats.dart';
 import 'code_lab_exercises.dart';
 
 /// Interactive offline coding exercises. No source code is evaluated:
 /// users choose a statement or assemble a sequence of authored steps.
 class CodeLabPage extends StatefulWidget {
-  const CodeLabPage({super.key, this.catalog = codeLabCatalog});
+  const CodeLabPage({
+    super.key,
+    this.catalog = codeLabCatalog,
+    this.reviewMistakes = false,
+  });
 
   static const statsId = 'code_lab';
   final List<CodeLabExercise> catalog;
+  final bool reviewMistakes;
 
   @override
   State<CodeLabPage> createState() => _CodeLabPageState();
@@ -21,8 +27,10 @@ class CodeLabPage extends StatefulWidget {
 class _CodeLabPageState extends State<CodeLabPage> {
   static const autoAdvanceDelay = Duration(milliseconds: 850);
   final selectedSteps = <int>[];
+  final answers = <String, bool>{};
   List<CodeLabExercise> questions = const [];
   SectionQuizStats stats = const SectionQuizStats();
+  CodeLabMistakes mistakes = CodeLabMistakes.empty;
   Timer? autoAdvance;
   int index = 0;
   int correct = 0;
@@ -49,13 +57,18 @@ class _CodeLabPageState extends State<CodeLabPage> {
     final prefs = await SharedPreferences.getInstance();
     final latest = SectionQuizStats.fromPreferences(
       prefs, CodeLabPage.statsId);
+    final pending = CodeLabMistakes.fromPreferences(
+      prefs, catalog: widget.catalog);
     if (!mounted) return;
     setState(() {
       stats = latest;
-      questions = buildCodeLabRound(
-        completedAttempts: latest.attempts,
-        catalog: widget.catalog,
-      );
+      mistakes = pending;
+      questions = widget.reviewMistakes
+          ? pending.pendingExercises(catalog: widget.catalog)
+          : buildCodeLabRound(
+              completedAttempts: latest.attempts,
+              catalog: widget.catalog,
+            );
       index = 0;
       correct = 0;
       answered = false;
@@ -64,6 +77,7 @@ class _CodeLabPageState extends State<CodeLabPage> {
       finished = false;
       ready = true;
       selectedSteps.clear();
+      answers.clear();
     });
   }
 
@@ -72,6 +86,7 @@ class _CodeLabPageState extends State<CodeLabPage> {
     autoAdvance?.cancel();
     setState(() {
       answered = true;
+      answers[questions[index].id] = isCorrect;
       answerWasCorrect = isCorrect;
       if (isCorrect) correct++;
     });
@@ -112,11 +127,17 @@ class _CodeLabPageState extends State<CodeLabPage> {
     setState(() => saving = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final result = await SectionQuizStats.record(
-        prefs, CodeLabPage.statsId, correct);
+      // Save mistakes independently; applying the same answers twice is safe.
+      final pending = await CodeLabMistakes.recordRound(
+        prefs, answers, catalog: widget.catalog);
+      final result = widget.reviewMistakes
+          ? stats
+          : await SectionQuizStats.record(
+              prefs, CodeLabPage.statsId, correct);
       if (!mounted) return;
       setState(() {
         stats = result;
+        mistakes = pending;
         finished = true;
         saving = false;
       });
@@ -366,6 +387,7 @@ class _CodeLabPageState extends State<CodeLabPage> {
   }
 
   Widget _result() {
+    final pending = mistakes.pendingCount;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(25),
@@ -375,7 +397,9 @@ class _CodeLabPageState extends State<CodeLabPage> {
             const Icon(Icons.emoji_events_rounded,
               size: 62, color: Color(0xFF6857CE)),
             const SizedBox(height: 13),
-            const Text('اكتملت جلسة مختبر الكود',
+            Text(widget.reviewMistakes
+                ? 'اكتملت مراجعة أخطاء المختبر'
+                : 'اكتملت جلسة مختبر الكود',
               style: TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w900,
                 color: Color(0xFF101D32)),
@@ -387,21 +411,33 @@ class _CodeLabPageState extends State<CodeLabPage> {
                 fontSize: 22, fontWeight: FontWeight.w800,
                 color: Color(0xFF101D32))),
             const SizedBox(height: 9),
+            if (!widget.reviewMistakes)
+              Text(
+                'أفضل نتيجة: ${stats.bestScore} من 6 • '
+                'محاولات مكتملة: ${stats.attempts}',
+                key: const Key('code_lab_best'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF667085))),
+            const SizedBox(height: 9),
             Text(
-              'أفضل نتيجة: ${stats.bestScore} من 6 • '
-              'محاولات مكتملة: ${stats.attempts}',
-              key: const Key('code_lab_best'),
+              pending == 0
+                  ? 'لا توجد أخطاء متبقية للمراجعة'
+                  : 'تمارين تحتاج مراجعة: $pending',
+              key: const Key('code_lab_pending'),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFF667085))),
             const SizedBox(height: 21),
-            FilledButton.icon(
-              key: const Key('code_lab_restart'),
-              onPressed: _load,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('تحدٍّ جديد'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF6857CE)),
-            ),
+            if (!widget.reviewMistakes || pending > 0)
+              FilledButton.icon(
+                key: const Key('code_lab_restart'),
+                onPressed: _load,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(widget.reviewMistakes
+                    ? 'مراجعة الأخطاء المتبقية'
+                    : 'تحدٍّ جديد'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF6857CE)),
+              ),
             const SizedBox(height: 9),
             TextButton(
               key: const Key('code_lab_back'),
@@ -419,11 +455,14 @@ class _CodeLabPageState extends State<CodeLabPage> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: const Text('مختبر الكود')),
+        appBar: AppBar(title: Text(widget.reviewMistakes
+            ? 'مراجعة أخطاء المختبر' : 'مختبر الكود')),
         body: !ready
             ? const Center(child: CircularProgressIndicator())
             : questions.isEmpty
-                ? const Center(child: Text('لا توجد تمارين متاحة حاليًا'))
+                ? Center(child: Text(widget.reviewMistakes
+                    ? 'لا توجد أخطاء تحتاج مراجعة'
+                    : 'لا توجد تمارين متاحة حاليًا'))
                 : finished
                     ? _result()
                     : SafeArea(
@@ -432,7 +471,7 @@ class _CodeLabPageState extends State<CodeLabPage> {
                           children: [
                             Row(children: [
                               Expanded(child: Text(
-                                'التمرين ${index + 1} من ${questions.length}',
+                                '${widget.reviewMistakes ? 'المراجعة' : 'التمرين'} ${index + 1} من ${questions.length}',
                                 key: const Key('code_lab_question_count'),
                                 style: const TextStyle(
                                   color: Color(0xFF101D32),

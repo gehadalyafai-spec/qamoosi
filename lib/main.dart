@@ -495,6 +495,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             );
           },
+          onCodeLabMistakes: () async {
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CodeLabPage(reviewMistakes: true),
+              ),
+            );
+          },
         ),
       ),
     );

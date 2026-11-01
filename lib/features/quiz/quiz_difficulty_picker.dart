@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/code_lab_mistakes.dart';
 import '../../core/quiz_difficulty.dart';
 import '../../core/section_quiz_stats.dart';
 
@@ -11,11 +12,13 @@ class QuizDifficultyPicker extends StatefulWidget {
     super.key,
     required this.onStart,
     this.onCodeLab,
+    this.onCodeLabMistakes,
   });
 
   final Future<void> Function(QuizDifficulty) onStart;
   /// Optional for backward compatibility with existing challenges/tests.
   final Future<void> Function()? onCodeLab;
+  final Future<void> Function()? onCodeLabMistakes;
 
   @override
   State<QuizDifficultyPicker> createState() => _QuizDifficultyPickerState();
@@ -24,6 +27,7 @@ class QuizDifficultyPicker extends StatefulWidget {
 class _QuizDifficultyPickerState extends State<QuizDifficultyPicker> {
   Map<String, SectionQuizStats> results = {};
   bool opening = false;
+  int codeLabPending = 0;
 
   @override
   void initState() {
@@ -34,7 +38,10 @@ class _QuizDifficultyPickerState extends State<QuizDifficultyPicker> {
   Future<void> _refresh() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => results = SectionQuizStats.allFromPreferences(prefs));
+    setState(() {
+      results = SectionQuizStats.allFromPreferences(prefs);
+      codeLabPending = CodeLabMistakes.fromPreferences(prefs).pendingCount;
+    });
   }
 
   Future<void> _open(QuizDifficulty difficulty) async {
@@ -53,6 +60,20 @@ class _QuizDifficultyPickerState extends State<QuizDifficultyPicker> {
   Future<void> _openCodeLab() async {
     final callback = widget.onCodeLab;
     if (opening || callback == null) return;
+    setState(() => opening = true);
+    try {
+      await callback();
+    } finally {
+      if (mounted) {
+        setState(() => opening = false);
+        await _refresh();
+      }
+    }
+  }
+
+  Future<void> _openCodeLabMistakes() async {
+    final callback = widget.onCodeLabMistakes;
+    if (opening || callback == null || codeLabPending == 0) return;
     setState(() => opening = true);
     try {
       await callback();
@@ -214,6 +235,33 @@ class _QuizDifficultyPickerState extends State<QuizDifficultyPicker> {
                     ),
                   ),
                 ),
+                if (widget.onCodeLabMistakes != null &&
+                    codeLabPending > 0) ...[
+                  const SizedBox(height: 10),
+                  Material(
+                    color: const Color(0xFFF0EDFA),
+                    borderRadius: BorderRadius.circular(17),
+                    child: InkWell(
+                      key: const Key('open_code_lab_mistakes'),
+                      borderRadius: BorderRadius.circular(17),
+                      onTap: opening ? null : _openCodeLabMistakes,
+                      child: Padding(
+                        padding: const EdgeInsets.all(15),
+                        child: Row(children: [
+                          const Icon(Icons.replay_rounded,
+                            color: purple, size: 26),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(
+                            'راجع أخطاء مختبر الكود ($codeLabPending)',
+                            style: const TextStyle(
+                              color: navy, fontWeight: FontWeight.w800))),
+                          const Icon(Icons.arrow_back_ios_new_rounded,
+                            size: 15, color: purple),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 14),
               const Text(
