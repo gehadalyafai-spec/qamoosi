@@ -8,6 +8,7 @@ import 'core/smart_study_plan.dart';
 import 'core/quiz_stats.dart';
 import 'core/quiz_weak_words.dart';
 import 'core/quiz_difficulty.dart';
+import 'features/quiz/quiz_difficulty_picker.dart';
 import 'core/section_quiz_scheduler.dart';
 import 'core/section_quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
@@ -466,6 +467,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     await Navigator.push<void>(
       context,
       MaterialPageRoute(builder: (_) => const QuizPage.adaptive()),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _openDifficultyPicker() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizDifficultyPicker(
+          onStart: (difficulty) async {
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => QuizPage.forDifficulty(
+                  difficulty: difficulty,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
     if (mounted) await _load();
   }
@@ -950,6 +972,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 14),
+                          Material(
+                            color: const Color(0xFFECE9FA),
+                            borderRadius: BorderRadius.circular(22),
+                            child: InkWell(
+                              key: const Key('open_difficulty_quiz'),
+                              borderRadius: BorderRadius.circular(22),
+                              onTap: _openDifficultyPicker,
+                              child: const Padding(
+                                padding: EdgeInsets.all(18),
+                                child: Row(children: [
+                                  Icon(Icons.school_rounded,
+                                    color: Color(0xFF6857CE), size: 30),
+                                  SizedBox(width: 14),
+                                  Expanded(child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('تحديات بثلاثة مستويات',
+                                        style: TextStyle(
+                                          color: Color(0xFF101D32),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 17)),
+                                      SizedBox(height: 5),
+                                      Text('ترجمة • مواقف عملية • فهم الكود',
+                                        style: TextStyle(
+                                          color: Color(0xFF5B5574), fontSize: 13)),
+                                    ],
+                                  )),
+                                  Icon(Icons.arrow_back_ios_new_rounded,
+                                    color: Color(0xFF6857CE), size: 17),
+                                ]),
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 14),
                           Material(
                             color: const Color(0xFFE9F1FF),
