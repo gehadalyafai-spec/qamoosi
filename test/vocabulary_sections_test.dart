@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:qamoosi/core/review_scheduler.dart';
 
 import 'package:qamoosi/features/catalog/vocabulary_sections.dart';
 import 'package:qamoosi/main.dart';
@@ -213,5 +216,84 @@ void main() {
     await tester.pumpAndSettle();
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('quiz_attempts'), 9);
+  });
+
+  test('section progress includes only real catalog IDs and no duplicates', () {
+    final summary = SectionProgressSummary.fromCardIds(
+      cardIds: ['variable', 'function', 'variable', 'retired'],
+      knownIds: {'variable', 'outside'},
+      dueIds: {'function', 'outside'},
+      weeklyIds: {'variable', 'retired', 'outside'},
+    );
+    expect(summary.total, 3);
+    expect(summary.mastered, 1);
+    expect(summary.dueReviews, 1);
+    expect(summary.practisedThisWeek, 2);
+    expect(summary.masteryPercent, 33);
+    final empty = SectionProgressSummary.fromCardIds(
+      cardIds: [],
+      knownIds: {'variable'},
+      dueIds: {'variable'},
+      weeklyIds: {'variable'},
+    );
+    expect(empty.masteryFraction, 0);
+    expect(empty.masteryPercent, 0);
+    expect(empty.dueReviews, 0);
+  });
+
+  testWidgets('section due review works even when its lesson is filtered out',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1250));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final due = ReviewState(
+      dueAt: DateTime.now().subtract(const Duration(days: 2)),
+      intervalDays: 1, successfulReviews: 1,
+    );
+    SharedPreferences.setMockInitialValues({
+      'known_cards': ['variable'],
+      'review_states': jsonEncode({'variable': due.toJson()}),
+    });
+    await tester.pumpWidget(const QamoosiApp());
+    await tester.pumpAndSettle();
+    final filter = find.byKey(const Key('level_intermediate'));
+    await tester.scrollUntilVisible(filter, 180,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(filter);
+    await tester.pumpAndSettle();
+
+    final category = find.byKey(const Key('section_expand_programming_all'));
+    await tester.scrollUntilVisible(category, 160,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    expect(find.text('6 دروس • 1 من 70 كلمة'), findsOneWidget);
+    expect(find.textContaining('مراجعات مستحقة 1'), findsWidgets);
+    await tester.tap(category);
+    await tester.pumpAndSettle();
+
+    final review = find.byKey(const Key('section_due_review_programming'));
+    await tester.scrollUntilVisible(review, 120,
+      scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(review), alignment: 0.3);
+    await tester.pumpAndSettle();
+    await tester.tap(review);
+    await tester.pumpAndSettle();
+    // The beginner word still belongs to this category and needs reviewing,
+    // even if the intermediate filter temporarily hides its normal lesson.
+    expect(find.text('مراجعات: البرمجة وتطوير التطبيقات'), findsOneWidget);
+    expect(find.text('Variable'), findsOneWidget);
+    expect(find.text('البطاقة 1 من 1'), findsOneWidget);
+    await tester.tap(find.text('عرفتها'));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    final prefs = await SharedPreferences.getInstance();
+    final saved = jsonDecode(prefs.getString('review_states')!) as Map;
+    final updated = ReviewState.fromJson(saved['variable'])!;
+    expect(updated.isDue(DateTime.now()), isFalse);
+    expect(prefs.getStringList('known_cards'), contains('variable'));
   });
 }
