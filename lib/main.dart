@@ -9,6 +9,7 @@ import 'core/quiz_stats.dart';
 import 'core/quiz_weak_words.dart';
 import 'core/quiz_difficulty.dart';
 import 'features/quiz/quiz_difficulty_picker.dart';
+import 'features/code_lab/code_lab_page.dart';
 import 'core/section_quiz_scheduler.dart';
 import 'core/section_quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
@@ -483,6 +484,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 builder: (_) => QuizPage.forDifficulty(
                   difficulty: difficulty,
                 ),
+              ),
+            );
+          },
+          onCodeLab: () async {
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CodeLabPage(),
               ),
             );
           },
