@@ -6,6 +6,8 @@ import 'dart:ui';
 import 'core/review_scheduler.dart';
 import 'core/smart_study_plan.dart';
 import 'core/quiz_stats.dart';
+import 'core/section_quiz_scheduler.dart';
+import 'core/section_quiz_stats.dart';
 import 'core/daily_learning_progress.dart';
 import 'core/favorite_words_repository.dart';
 import 'data/word_insights.dart';
@@ -1335,9 +1337,24 @@ List<CardEntry> buildQuizCards(int completedAttempts) {
 }
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key, this.speaker});
+  const QuizPage({super.key, this.speaker})
+      : sectionId = null,
+        sectionTitle = null,
+        sectionLessons = null;
+
+  /// Runs on a fixed topic; global quiz statistics are not modified.
+  const QuizPage.forSection({
+    super.key,
+    required this.sectionId,
+    required this.sectionTitle,
+    required this.sectionLessons,
+    this.speaker,
+  });
 
   final WordSpeaker? speaker;
+  final String? sectionId;
+  final String? sectionTitle;
+  final List<Lesson>? sectionLessons;
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -1385,10 +1402,21 @@ class _QuizPageState extends State<QuizPage> {
     unawaited(_speaker.stop().catchError((Object _) {}));
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    final stats = QuizStats.fromPreferences(prefs);
+    final scopedId = widget.sectionId;
+    final stats = scopedId == null
+        ? QuizStats.fromPreferences(prefs)
+        : _scopedStatsAsQuizStats(
+            SectionQuizStats.fromPreferences(prefs, scopedId));
+    final cards = scopedId == null
+        ? buildQuizCards(stats.attempts)
+        : buildSectionQuizCards<CardEntry>(
+            [for (final lesson in widget.sectionLessons ?? const <Lesson>[])
+              lesson.cards],
+            stats.attempts,
+          );
     setState(() {
       _stats = stats;
-      _cards = buildQuizCards(stats.attempts);
+      _cards = cards;
       _mistakes.clear();
       index = 0;
       correct = 0;
@@ -1400,9 +1428,22 @@ class _QuizPageState extends State<QuizPage> {
     });
   }
 
+  static QuizStats _scopedStatsAsQuizStats(SectionQuizStats value) =>
+      QuizStats(
+        attempts: value.attempts,
+        lastScore: value.lastScore,
+        bestScore: value.bestScore,
+      );
+
   List<String> get options {
     final current = _cards[index];
-    final others = _allCards
+    final questionPool = widget.sectionLessons == null
+        ? _allCards
+        : [
+            for (final lesson in widget.sectionLessons!)
+              ...lesson.cards,
+          ];
+    final others = questionPool
         .where((card) => card.id != current.id && card.translation != current.translation)
         .map((card) => card.translation)
         .toSet()
@@ -1487,7 +1528,12 @@ class _QuizPageState extends State<QuizPage> {
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      final updated = await QuizStats.record(prefs, correct);
+      final scopedId = widget.sectionId;
+      final updated = scopedId == null
+          ? await QuizStats.record(prefs, correct)
+          : _scopedStatsAsQuizStats(
+              await SectionQuizStats.record(prefs, scopedId, correct),
+            );
       if (!mounted) return;
       setState(() {
         _stats = updated;
@@ -1523,7 +1569,11 @@ class _QuizPageState extends State<QuizPage> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(title: const Text('اختبار الكلمات')),
+        appBar: AppBar(
+          title: Text(widget.sectionTitle == null
+              ? 'اختبار الكلمات'
+              : 'اختبار: ${widget.sectionTitle}'),
+        ),
         body: SafeArea(
           child: !_ready
               ? const Center(child: CircularProgressIndicator())
@@ -1583,7 +1633,8 @@ class _QuizPageState extends State<QuizPage> {
                           const SizedBox(height: 8),
                           TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('العودة للرئيسية'),
+                            child: Text(widget.sectionId == null
+                              ? 'العودة للرئيسية' : 'العودة للقسم'),
                           ),
                         ]),
                       ),
