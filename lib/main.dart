@@ -278,6 +278,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Set<String> known = {};
   Map<String, ReviewState> reviews = {};
   QuizStats quizStats = const QuizStats();
+  Map<String, SectionQuizStats> sectionQuizStats = {};
   PracticeStats practiceStats = const PracticeStats();
   DailyLearningProgress dailyProgress = DailyLearningProgress();
   int pendingPracticeMistakes = 0;
@@ -329,6 +330,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       known = prefs.getStringList('known_cards')?.toSet() ?? {};
       reviews = restored;
       quizStats = QuizStats.fromPreferences(prefs);
+      sectionQuizStats = SectionQuizStats.allFromPreferences(prefs);
       practiceStats = PracticeStats.fromPreferences(prefs);
       pendingPracticeMistakes =
           PracticeMistakes.fromPreferences(prefs).pendingCount;
@@ -462,6 +464,45 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     ];
     if (cards.isEmpty) return;
     await _openLesson(Lesson(title, cards));
+  }
+
+  /// Short study session using only cards not yet mastered in the visible
+  /// part of a section. Changing filters never alters any stored card IDs.
+  Future<void> _continueVocabularySection(
+      VocabularySectionSelection section) async {
+    final pending = [
+      for (final index in section.lessonIndices)
+        for (final card in lessons[index].cards)
+          if (!known.contains(card.id)) card,
+    ];
+    if (pending.isEmpty) return;
+    await _openLesson(Lesson(
+      'تعلّم: ${section.section.title}',
+      pending.take(6).toList(),
+    ));
+  }
+
+  /// Category challenges always cover the complete section, irrespective
+  /// of temporary beginner/intermediate filters or search text.
+  Future<void> _testVocabularySection(
+      VocabularySectionSelection section) async {
+    final byTitle = {for (final lesson in lessons) lesson.title: lesson};
+    final pool = [
+      for (final title in section.section.lessonTitles)
+        if (byTitle.containsKey(title)) byTitle[title]!,
+    ];
+    if (pool.isEmpty) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizPage.forSection(
+          sectionId: section.section.id,
+          sectionTitle: section.section.title,
+          sectionLessons: pool,
+        ),
+      ),
+    );
+    if (mounted) await _load();
   }
 
   Future<void> _openSmartStudyPlan() async {
@@ -927,6 +968,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 (card) => known.contains(card.id)).length,
                               totalOf: (i) => lessons[i].cards.length,
                               onOpenLesson: (i) => _openLesson(lessons[i]),
+                              onContinueSection: _continueVocabularySection,
+                              onTestSection: _testVocabularySection,
+                              quizStatsOf: (section) =>
+                                  sectionQuizStats[section.section.id] ??
+                                  const SectionQuizStats(),
                               expandSearchResults:
                                   lessonQuery.trim().isNotEmpty,
                             ),
