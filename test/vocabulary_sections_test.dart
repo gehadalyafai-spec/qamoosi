@@ -287,8 +287,8 @@ void main() {
     expect(find.text('البطاقة 1 من 1'), findsOneWidget);
     await tester.tap(find.text('عرفتها'));
     await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    // Completing the only due card automatically closes its lesson.
+    expect(find.text('مراجعات: البرمجة وتطوير التطبيقات'), findsNothing);
 
     final prefs = await SharedPreferences.getInstance();
     final saved = jsonDecode(prefs.getString('review_states')!) as Map;
