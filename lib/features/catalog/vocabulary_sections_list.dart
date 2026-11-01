@@ -17,6 +17,8 @@ class VocabularySectionsList extends StatelessWidget {
     required this.onContinueSection,
     required this.onTestSection,
     required this.quizStatsOf,
+    required this.sectionProgressOf,
+    required this.onReviewSection,
     this.expandSearchResults = false,
   });
 
@@ -29,6 +31,9 @@ class VocabularySectionsList extends StatelessWidget {
   final Future<void> Function(VocabularySectionSelection) onContinueSection;
   final Future<void> Function(VocabularySectionSelection) onTestSection;
   final SectionQuizStats Function(VocabularySectionSelection) quizStatsOf;
+  final SectionProgressSummary Function(VocabularySectionSelection)
+      sectionProgressOf;
+  final Future<void> Function(VocabularySectionSelection) onReviewSection;
   final bool expandSearchResults;
 
   @override
@@ -90,12 +95,8 @@ class VocabularySectionsList extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 6),
                   child: Builder(builder: (context) {
                     final count = sections[groupIndex].lessonIndices.length;
-                    final total = sections[groupIndex].lessonIndices.fold<int>(
-                      0, (sum, i) => sum + totalOf(i),
-                    );
-                    final learned = sections[groupIndex].lessonIndices.fold<int>(
-                      0, (sum, i) => sum + learnedOf(i),
-                    );
+                    final progress = sectionProgressOf(
+                      sections[groupIndex]);
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -103,16 +104,26 @@ class VocabularySectionsList extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 12, color: muted, height: 1.5)),
                         const SizedBox(height: 6),
-                        Text('$count دروس • $learned من $total كلمة',
+                        Text(
+                          '$count دروس • ${progress.mastered} من '
+                          '${progress.total} كلمة',
                           key: Key('section_progress_${sections[groupIndex].section.id}'),
                           style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w700,
                             color: purple)),
+                        const SizedBox(height: 6),
+                        Text(
+                          'إتقان ${progress.masteryPercent}% • '
+                          'هذا الأسبوع ${progress.practisedThisWeek} • '
+                          'مراجعات مستحقة ${progress.dueReviews}',
+                          key: Key('section_mastery_${sections[groupIndex].section.id}'),
+                          style: const TextStyle(
+                            fontSize: 11, color: muted, height: 1.45)),
                         const SizedBox(height: 9),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(9),
                           child: LinearProgressIndicator(
-                            value: total == 0 ? 0 : learned / total,
+                            value: progress.masteryFraction,
                             minHeight: 6,
                             backgroundColor: const Color(0xFFECEEF3),
                             color: const Color(0xFFFF653B),
@@ -178,6 +189,21 @@ class VocabularySectionsList extends StatelessWidget {
                               ),
                             ),
                           ]),
+                          if (sectionProgressOf(selected).dueReviews > 0) ...[
+                            const SizedBox(height: 6),
+                            TextButton.icon(
+                              key: Key('section_due_review_${selected.section.id}'),
+                              onPressed: () => onReviewSection(selected),
+                              icon: const Icon(Icons.replay_rounded, size: 19),
+                              label: Text('مراجعة ${sectionProgressOf(selected).dueReviews} '
+                                'بطاقات مستحقة'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: purple,
+                                textStyle: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
                           if (stats.attempts > 0) ...[
                             const SizedBox(height: 8),
                             Text(
